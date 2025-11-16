@@ -116,7 +116,7 @@ const getGradeForActivity = (
 const GradesMatrix: React.FC<{
     instrument: InstrumentoEvaluacion;
 }> = ({ instrument }) => {
-    const { students, academicGrades, calculatedGrades } = useAppContext();
+    const { students, academicGrades, calculatedStudentGrades } = useAppContext();
     const sortedStudents = useMemo(() => [...students].sort((a,b) => a.apellido1.localeCompare(b.apellido1)), [students]);
 
     if(instrument.activities.length === 0) {
@@ -140,7 +140,8 @@ const GradesMatrix: React.FC<{
                             <td className={`p-2 border text-left font-medium text-gray-800 w-48 sticky left-0 group-hover:bg-gray-100 ${index % 2 !== 0 ? 'bg-gray-50' : 'bg-white'}`}>{`${student.apellido1} ${student.apellido2}, ${student.nombre}`}</td>
                             {instrument.activities.map(act => {
                                 // Grade calculation logic here might need to be module-specific in the future
-                                const grade = getGradeForActivity(student.id, act, academicGrades, calculatedGrades);
+                                // FIX: Corrected variable name from `calculatedGrades` to `calculatedStudentGrades` to match the value from the context.
+                                const grade = getGradeForActivity(student.id, act, academicGrades, calculatedStudentGrades);
                                 return (
                                     <td key={act.id} className={`p-2 border text-center font-semibold ${grade !== null && grade < 5 ? 'text-red-600' : 'text-gray-800'}`}>
                                         {grade !== null ? grade.toFixed(2) : '-'}

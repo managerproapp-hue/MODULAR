@@ -47,7 +47,10 @@ const PreServiceIndividualTable: React.FC<{
                         <tr key={field}>
                             <td className="p-2 border font-medium capitalize text-left">{field === 'attendance' ? 'Asistencia' : field.replace('has', '')}</td>
                             {studentsInGroup.map(s => {
-                                const isChecked = evaluationData?.individualEvaluations[s.id]?.[field] ?? (field === 'attendance');
+                                // FIX: Corrected type assertion for accessing object property.
+                                // The `field` variable, though derived from a `const` array, might be inferred as a generic `string` by the compiler,
+                                // which is not a valid index for `PreServiceIndividualEvaluation`. Explicitly casting it to the specific keys resolves the issue.
+                                const isChecked = evaluationData?.individualEvaluations[s.id]?.[field as 'attendance' | 'hasFichas' | 'hasUniforme' | 'hasMaterial'] ?? (field === 'attendance');
                                 return (
                                 <td key={s.id} className="p-2 border text-center">
                                     <input type="checkbox" checked={isChecked} onChange={e => onUpdate(s.id, field, e.target.checked)} className="h-4 w-4" disabled={isLocked} />
@@ -315,7 +318,6 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
             return recDate >= weekStart && recDate <= weekEnd;
         });
 
-        // FIX: Explicitly type the accumulator in the reduce function to resolve "Type 'unknown' cannot be used as an index type" error.
         return relevantRecords.reduce((acc: Record<string, EntryExitRecord[]>, rec) => {
             if (!acc[rec.studentId]) {
                 acc[rec.studentId] = [];
