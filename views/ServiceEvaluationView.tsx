@@ -373,7 +373,7 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
         }
     };
 
-    // FIX: Refactored to use type-safe conditional assignments instead of a switch with type assertions.
+    // FIX: Replaced if/else if with a switch statement for better type safety and to resolve indexed access error.
     const handlePreServiceIndividualUpdate = (date: string, studentId: string, field: keyof PreServiceIndividualEvaluation, value: any, behaviorItemId?: string) => {
         deepCloneAndUpdate(draft => {
             const individualEval = draft.preService[date]?.individualEvaluations[studentId];
@@ -381,17 +381,30 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
                 return;
             }
     
-            if (field === 'behaviorScores') {
-                if (behaviorItemId) {
-                    if (!individualEval.behaviorScores) {
-                        individualEval.behaviorScores = {};
+            switch (field) {
+                case 'behaviorScores':
+                    if (behaviorItemId) {
+                        if (!individualEval.behaviorScores) {
+                            individualEval.behaviorScores = {};
+                        }
+                        individualEval.behaviorScores[behaviorItemId] = value;
                     }
-                    individualEval.behaviorScores[behaviorItemId] = value;
-                }
-            } else if (field === 'observations') {
-                individualEval.observations = value;
-            } else if (field === 'attendance' || field === 'hasFichas' || field === 'hasUniforme' || field === 'hasMaterial') {
-                individualEval[field] = value;
+                    break;
+                case 'observations':
+                    individualEval.observations = value;
+                    break;
+                case 'attendance':
+                    individualEval.attendance = value;
+                    break;
+                case 'hasFichas':
+                    individualEval.hasFichas = value;
+                    break;
+                case 'hasUniforme':
+                    individualEval.hasUniforme = value;
+                    break;
+                case 'hasMaterial':
+                    individualEval.hasMaterial = value;
+                    break;
             }
         });
     };

@@ -101,7 +101,7 @@ export const COURSE_MODULES: { name: string; trimesters: number }[] = [
     { name: 'Productos culinarios', trimesters: 2 },
     { name: 'Postres en restauración', trimesters: 2 },
     { name: 'Itinerario personal para la Empleabilidad II', trimesters: 2 },
-    { name: 'Proyecto Intermodular', trimesters: 3 },
+    { name: 'Proyecto', trimesters: 3 },
     { name: 'Sostenibilidad aplicada al sistema productivo', trimesters: 2 },
 ];
 
