@@ -402,7 +402,9 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
         const newName = e.target.value;
         const date = activePreServiceDate;
         deepCloneAndUpdate(draft => {
-            if(draft.preService[date]) draft.preService[date].name = newName;
+            if(draft.preService?.[date]) {
+                draft.preService[date].name = newName;
+            }
         });
     };
 

@@ -11,6 +11,7 @@ import { criteriosEvaluacion as mockCriterios } from '../data/criterios-data';
 import { instrumentosEvaluacion as mockInstrumentos } from '../data/instrumentos-data';
 import { profesores as mockProfesores } from '../data/profesores-data';
 import { unidadesTrabajo as mockUTs } from '../data/ut-data';
+import { SERVICE_GRADE_WEIGHTS } from '../data/constants';
 
 
 // --- Custom Hook for Local Storage ---
@@ -214,9 +215,87 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     const calculatedStudentGrades = useMemo(() => {
-        // ... (implementation is unchanged)
-        return {};
-    }, [students, services, serviceEvaluations, practicalExamEvaluations, practiceGroups]);
+        const studentGrades: Record<string, StudentCalculatedGrades> = {};
+    
+        students.forEach(student => {
+            studentGrades[student.id] = {
+                serviceAverages: { t1: null, t2: null, t3: null },
+                practicalExams: { t1: null, t2: null, t3: null, rec: null }
+            };
+    
+            // 1. Calculate Service Averages
+            const studentPracticeGroup = practiceGroups.find(pg => pg.studentIds.includes(student.id));
+    
+            (['t1', 't2', 't3'] as const).forEach(trimester => {
+                if (!trimesterDates[trimester]) return;
+    
+                const trimesterStart = new Date(trimesterDates[trimester]!.start + 'T00:00:00');
+                const trimesterEnd = new Date(trimesterDates[trimester]!.end + 'T23:59:59');
+    
+                const servicesInTrimester = services.filter(s => {
+                    const serviceDate = new Date(s.date + 'T12:00:00');
+                    return serviceDate >= trimesterStart && serviceDate <= trimesterEnd;
+                });
+    
+                const serviceScoresForTrimester: number[] = [];
+                servicesInTrimester.forEach(service => {
+                    const evaluation = serviceEvaluations.find(e => e.serviceId === service.id);
+                    if (!evaluation) return;
+    
+                    const individualEval = evaluation.serviceDay.individualScores?.[student.id];
+                    
+                    let studentParticipated = false;
+                    if (service.type === 'normal' && studentPracticeGroup) {
+                        studentParticipated = service.assignedGroups.comedor.includes(studentPracticeGroup.id) || service.assignedGroups.takeaway.includes(studentPracticeGroup.id);
+                    } else if (service.type === 'agrupacion') {
+                        studentParticipated = (service.agrupaciones || []).some(a => a.studentIds.includes(student.id));
+                    }
+    
+                    if (!studentParticipated || !individualEval || !individualEval.attendance) {
+                        return;
+                    }
+    
+                    const individualGrade = (individualEval.scores || []).reduce((sum, score) => sum + (score || 0), 0);
+                    
+                    let groupGrade = 0;
+                    let groupEvalSourceId: string | undefined = undefined;
+    
+                    if (service.type === 'normal' && studentPracticeGroup) {
+                        groupEvalSourceId = studentPracticeGroup.id;
+                    } else if (service.type === 'agrupacion') {
+                        groupEvalSourceId = service.agrupaciones?.find(a => a.studentIds.includes(student.id))?.id;
+                    }
+                    
+                    if (groupEvalSourceId) {
+                        const groupEval = evaluation.serviceDay.groupScores[groupEvalSourceId];
+                        if (groupEval) {
+                            groupGrade = (groupEval.scores || []).reduce((sum, score) => sum + (score || 0), 0);
+                        }
+                    }
+                    
+                    if (individualEval.halveGroupScore) {
+                        groupGrade /= 2;
+                    }
+    
+                    const finalServiceScore = (individualGrade * SERVICE_GRADE_WEIGHTS.individual) + (groupGrade * SERVICE_GRADE_WEIGHTS.group);
+                    serviceScoresForTrimester.push(finalServiceScore);
+                });
+    
+                if (serviceScoresForTrimester.length > 0) {
+                    const averageForTrimester = serviceScoresForTrimester.reduce((sum, score) => sum + score, 0) / serviceScoresForTrimester.length;
+                    studentGrades[student.id].serviceAverages[trimester] = parseFloat(averageForTrimester.toFixed(2));
+                }
+            });
+    
+            // 2. Calculate Practical Exam Grades
+            (['t1', 't2', 't3', 'rec'] as const).forEach(period => {
+                const exam = practicalExamEvaluations.find(e => e.studentId === student.id && e.examPeriod === period);
+                studentGrades[student.id].practicalExams[period] = exam?.finalScore ?? null;
+            });
+        });
+    
+        return studentGrades;
+    }, [students, services, serviceEvaluations, practicalExamEvaluations, practiceGroups, trimesterDates]);
     
     // --- Generic CRUD Handlers ---
     const createCRUDHandlers = (
@@ -288,14 +367,85 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const proyectoCRUD = createCRUDHandlers(setProyectoResultadosAprendizaje, setProyectoCriteriosEvaluacion, setProyectoUnidadesTrabajo, setProyectoInstrumentosEvaluacion);
 
     // --- Other Handlers ---
-    const handleFileUpload = async (file: File) => { /* ... unchanged ... */ };
-    const handleUpdateStudent = (updatedStudent: Student) => { /* ... unchanged ... */ };
-    const handleCreateService = (trimester: 't1' | 't2' | 't3', type: 'normal' | 'agrupacion' = 'normal') => { /* ... unchanged ... */ return ''; };
-    const handleSaveServiceAndEvaluation = (service: Service, evaluation: ServiceEvaluation) => { /* ... unchanged ... */ };
-    const handleDeleteService = (serviceId: string) => { /* ... unchanged ... */ };
-    const onDeleteRole = (roleId: string) => { /* ... unchanged ... */ };
-    const handleSaveEntryExitRecord = (record: Omit<EntryExitRecord, 'id' | 'studentId'>, studentIds: string[]) => { /* ... unchanged ... */ };
-    const handleSavePracticalExam = (evaluation: PracticalExamEvaluation) => { /* ... unchanged ... */ };
+    const handleFileUpload = async (file: File) => {
+        const { data, error } = await parseFile(file);
+        if (error) {
+            addToast(error, 'error');
+        } else {
+            setStudents(data);
+            addToast(`${data.length} alumnos importados con éxito.`, 'success');
+        }
+    };
+    const handleUpdateStudent = (updatedStudent: Student) => {
+        setStudents(prev => prev.map(s => s.id === updatedStudent.id ? updatedStudent : s));
+        addToast('Ficha del alumno actualizada.', 'success');
+    };
+    const handleCreateService = (trimester: 't1' | 't2' | 't3', type: 'normal' | 'agrupacion' = 'normal'): string => {
+        const newServiceId = `service-${Date.now()}`;
+        const newService: Service = {
+            id: newServiceId,
+            name: `Nuevo Servicio ${new Date().toLocaleDateString('es-ES')}`,
+            date: new Date().toISOString().split('T')[0],
+            trimester,
+            isLocked: false,
+            type: type,
+            assignedGroups: { comedor: [], takeaway: [] },
+            elaborations: { comedor: [], takeaway: [] },
+            studentRoles: [],
+            agrupaciones: type === 'agrupacion' ? [] : undefined,
+        };
+        const newEvaluation: ServiceEvaluation = {
+            id: `eval-${newServiceId}`,
+            serviceId: newServiceId,
+            preService: {},
+            serviceDay: { groupScores: {}, individualScores: {} },
+        };
+        
+        setServices(prev => [...prev, newService]);
+        setServiceEvaluations(prev => [...prev, newEvaluation]);
+        addToast('Nuevo servicio creado.', 'success');
+        return newServiceId;
+    };
+    const handleSaveServiceAndEvaluation = (service: Service, evaluation: ServiceEvaluation) => {
+        setServices(prev => prev.map(s => s.id === service.id ? service : s));
+        setServiceEvaluations(prev => prev.map(e => e.id === evaluation.id ? evaluation : e));
+        addToast(`Servicio '${service.name}' guardado.`, 'success');
+    };
+    const handleDeleteService = (serviceId: string) => {
+        setServices(prev => prev.filter(s => s.id !== serviceId));
+        setServiceEvaluations(prev => prev.filter(e => e.serviceId !== serviceId));
+        addToast('Servicio eliminado.', 'info');
+    };
+    const onDeleteRole = (roleId: string) => {
+        setServiceRoles(prev => prev.filter(r => r.id !== roleId));
+        // Also remove assignments using this role
+        setServices(prevServices => prevServices.map(s => ({
+            ...s,
+            studentRoles: s.studentRoles.filter(sr => sr.roleId !== roleId)
+        })));
+        addToast('Rol eliminado.', 'info');
+    };
+    const handleSaveEntryExitRecord = (record: Omit<EntryExitRecord, 'id' | 'studentId'>, studentIds: string[]) => {
+        const newRecords: EntryExitRecord[] = studentIds.map(studentId => ({
+            ...record,
+            id: `rec-${studentId}-${Date.now()}`,
+            studentId,
+        }));
+        setEntryExitRecords(prev => [...prev, ...newRecords]);
+        addToast(`Registro de ${record.type} guardado para ${studentIds.length} alumno(s).`, 'success');
+    };
+    const handleSavePracticalExam = (evaluation: PracticalExamEvaluation) => {
+        setPracticalExamEvaluations(prev => {
+            const index = prev.findIndex(e => e.id === evaluation.id);
+            if (index > -1) {
+                const newEvals = [...prev];
+                newEvals[index] = evaluation;
+                return newEvals;
+            }
+            return [...prev, evaluation];
+        });
+        addToast(`Examen práctico guardado.`, 'success');
+    };
     
     const handleResetApp = () => {
         const keysToRemove = [

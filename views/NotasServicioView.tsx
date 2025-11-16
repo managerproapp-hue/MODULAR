@@ -32,69 +32,59 @@ const NotasServicioView: React.FC<NotasServicioViewProps> = ({ onNavigateToServi
             const servicesByTrimester: Record<'t1' | 't2' | 't3', Service[]> = { t1: [], t2: [], t3: [] };
             sortedServices.forEach(s => { if(s.trimester) servicesByTrimester[s.trimester].push(s) });
 
-            const serviceScores: Record<string, { group: number | null, individual: number | null, absent: boolean }> = {};
-            const averages: Record<string, { individual: number | null, group: number | null, final: number | null }> = {};
+            const serviceScores: Record<string, { final: number | null, absent: boolean }> = {};
+            const averages: Record<string, { final: number | null }> = {};
 
             (['t1', 't2', 't3'] as const).forEach(trimester => {
                 const servicesInTrimester = servicesByTrimester[trimester];
-                const numServicesInTrimester = servicesInTrimester.length;
-
-                if (numServicesInTrimester === 0) {
-                    averages[trimester] = { individual: null, group: null, final: null };
-                    return;
-                }
-
-                let totalIndividual = 0;
-                let totalGroup = 0;
-
+                const scoresForTrimester: number[] = [];
+                
                 servicesInTrimester.forEach(service => {
                     const evaluation = serviceEvaluations.find(e => e.serviceId === service.id);
                     const individualEval = evaluation?.serviceDay.individualScores[student.id];
 
-                    let individualGrade = 0;
-                    let groupGrade = 0;
+                    let studentParticipated = false;
+                    const studentPracticeGroup = practiceGroups.find(pg => pg.studentIds.includes(student.id));
 
-                    if (individualEval && individualEval.attendance === false) {
-                        serviceScores[service.id] = { group: null, individual: null, absent: true };
-                    } else {
-                        if (individualEval) {
-                            individualGrade = (individualEval.scores || []).reduce((sum, score) => sum + (score || 0), 0);
-                        }
-                        
-                        if (service.type === 'agrupacion') {
-                            const studentAgrupacion = service.agrupaciones?.find(a => a.studentIds.includes(student.id));
-                            if (studentAgrupacion && evaluation) {
-                                const groupEval = evaluation.serviceDay.groupScores[studentAgrupacion.id];
-                                if (groupEval) {
-                                    groupGrade = (groupEval.scores || []).reduce((sum, score) => sum + (score || 0), 0);
-                                    if (individualEval?.halveGroupScore) groupGrade /= 2;
-                                }
-                            }
-                        } else { // 'normal'
-                            const practiceGroup = practiceGroups.find(pg => pg.studentIds.includes(student.id));
-                            if (practiceGroup && evaluation) {
-                                const groupEval = evaluation.serviceDay.groupScores[practiceGroup.id];
-                                if (groupEval) {
-                                    groupGrade = (groupEval.scores || []).reduce((sum, score) => sum + (score || 0), 0);
-                                    if (individualEval?.halveGroupScore) groupGrade /= 2;
-                                }
-                            }
-                        }
-                        serviceScores[service.id] = { group: groupGrade, individual: individualGrade, absent: false };
+                    if (service.type === 'normal' && studentPracticeGroup) {
+                        studentParticipated = service.assignedGroups.comedor.includes(studentPracticeGroup.id) || service.assignedGroups.takeaway.includes(studentPracticeGroup.id);
+                    } else if (service.type === 'agrupacion') {
+                        studentParticipated = (service.agrupaciones || []).some(a => a.studentIds.includes(student.id));
                     }
-                    totalIndividual += individualGrade;
-                    totalGroup += groupGrade;
+                    
+                    if (!studentParticipated || !individualEval || individualEval.attendance === false) {
+                        serviceScores[service.id] = { final: null, absent: true };
+                        return;
+                    }
+                    
+                    const individualGrade = (individualEval.scores || []).reduce((sum, score) => sum + (score || 0), 0);
+                    let groupGrade = 0;
+                    
+                    if (service.type === 'agrupacion') {
+                        const studentAgrupacion = service.agrupaciones?.find(a => a.studentIds.includes(student.id));
+                        if (studentAgrupacion && evaluation) {
+                            const groupEval = evaluation.serviceDay.groupScores[studentAgrupacion.id];
+                            if (groupEval) groupGrade = (groupEval.scores || []).reduce((sum, score) => sum + (score || 0), 0);
+                        }
+                    } else { // 'normal'
+                        if (studentPracticeGroup && evaluation) {
+                            const groupEval = evaluation.serviceDay.groupScores[studentPracticeGroup.id];
+                            if (groupEval) groupGrade = (groupEval.scores || []).reduce((sum, score) => sum + (score || 0), 0);
+                        }
+                    }
+                    
+                    if (individualEval?.halveGroupScore) groupGrade /= 2;
+                    
+                    const finalServiceScore = (individualGrade * SERVICE_GRADE_WEIGHTS.individual) + (groupGrade * SERVICE_GRADE_WEIGHTS.group);
+                    serviceScores[service.id] = { final: finalServiceScore, absent: false };
+                    scoresForTrimester.push(finalServiceScore);
                 });
 
-                const avgIndividual = totalIndividual / numServicesInTrimester;
-                const avgGroup = totalGroup / numServicesInTrimester;
-                const finalAvg = (avgIndividual + avgGroup) / 2;
-
-                averages[trimester] = {
-                    individual: avgIndividual,
-                    group: avgGroup,
-                    final: finalAvg
-                };
+                const finalAvg = scoresForTrimester.length > 0
+                    ? scoresForTrimester.reduce((sum, score) => sum + score, 0) / scoresForTrimester.length
+                    : null;
+                
+                averages[trimester] = { final: finalAvg };
             });
             
             return { serviceScores, averages };
@@ -110,16 +100,13 @@ const NotasServicioView: React.FC<NotasServicioViewProps> = ({ onNavigateToServi
              const { serviceScores, averages } = studentData.getScores(student);
             const row: (string | number | null)[] = [`${student.apellido1} ${student.apellido2}, ${student.nombre}`];
             sortedServices.forEach(service => {
-                const scores = serviceScores[service.id];
-                 if (!scores) {
+                const scoreInfo = serviceScores[service.id];
+                 if (!scoreInfo) {
                      row.push("-");
-                 } else if (scores.absent) {
+                 } else if (scoreInfo.absent) {
                     row.push("AUS");
                 } else {
-                    const indScore = scores.individual ?? 0;
-                    const groupScore = scores.group ?? 0;
-                    const finalServiceScore = (indScore + groupScore) / 2;
-                    row.push(finalServiceScore.toFixed(2));
+                    row.push(scoreInfo.final?.toFixed(2) ?? '-');
                 }
             });
             row.push(averages.t1.final?.toFixed(2) ?? '-');
@@ -185,11 +172,11 @@ const NotasServicioView: React.FC<NotasServicioViewProps> = ({ onNavigateToServi
                                         <tr key={student.id} className={`group ${index % 2 !== 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50`}>
                                             <td className={`p-1 border text-left font-semibold text-gray-800 w-48 sticky left-0 group-hover:bg-blue-50 ${index % 2 !== 0 ? 'bg-gray-50' : 'bg-white'}`}>{`${student.apellido1} ${student.apellido2}, ${student.nombre}`}</td>
                                             {sortedServices.map(service => {
-                                                const scores = serviceScores[service.id];
-                                                const finalScore = (scores && !scores.absent) ? ((scores.individual ?? 0) + (scores.group ?? 0)) / 2 : null;
+                                                const scoreInfo = serviceScores[service.id];
+                                                const finalScore = scoreInfo?.final;
                                                 return (
                                                     <td key={service.id} className={`p-1 border font-bold ${finalScore !== null && finalScore < 5 ? 'text-red-600' : ''}`}>
-                                                        {!scores ? '-' : scores.absent ? <span className="text-red-500 font-semibold">AUS</span> : <span>{finalScore?.toFixed(2)}</span>}
+                                                        {!scoreInfo ? '-' : scoreInfo.absent ? <span className="text-red-500 font-semibold">AUS</span> : <span>{finalScore?.toFixed(2)}</span>}
                                                     </td>
                                                 );
                                             })}

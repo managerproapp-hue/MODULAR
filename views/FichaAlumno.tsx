@@ -17,7 +17,7 @@ import { useAppContext } from '../context/AppContext';
 import { generateStudentFilePDF } from '../services/reportGenerator';
 import { calculateRAGrade, calculateCriterioGrade } from '../services/academicAnalytics';
 import { calculateStudentPeriodAverages } from '../services/gradeCalculator';
-import { ACADEMIC_EVALUATION_STRUCTURE, COURSE_MODULES } from '../data/constants';
+import { ACADEMIC_EVALUATION_STRUCTURE, COURSE_MODULES, SERVICE_GRADE_WEIGHTS } from '../data/constants';
 
 interface FichaAlumnoProps {
   student: Student;
@@ -282,7 +282,7 @@ const FichaAlumno: React.FC<FichaAlumnoProps> = ({ student, onBack, onUpdatePhot
                         if (individualEval.halveGroupScore) groupGrade /= 2;
                     }
                 }
-                const studentFinalGrade = (individualGrade + groupGrade) / 2;
+                const studentFinalGrade = (individualGrade * SERVICE_GRADE_WEIGHTS.individual) + (groupGrade * SERVICE_GRADE_WEIGHTS.group);
                 
                 const observations = [
                     individualEval.observations,
@@ -314,7 +314,7 @@ const FichaAlumno: React.FC<FichaAlumnoProps> = ({ student, onBack, onUpdatePhot
                                     if (sIndividualEval.halveGroupScore) sGroupGrade /= 2;
                                 }
                             }
-                            gradesOfAllStudents.push((sIndividualGrade + sGroupGrade) / 2);
+                            gradesOfAllStudents.push((sIndividualGrade * SERVICE_GRADE_WEIGHTS.individual) + (sGroupGrade * SERVICE_GRADE_WEIGHTS.group));
                         }
                     }
                 });
