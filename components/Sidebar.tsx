@@ -85,7 +85,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView }) => {
                 icon={Icon}
                 label={label}
                 isActive={isActive}
-                onClick={() => setActiveView(`${moduleKey}-ra`)}
+                onClick={() => setActiveView(`${moduleKey}-resumen`)}
                 isCollapsed={isCollapsed}
             />
         );
@@ -105,6 +105,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView }) => {
         </button>
         {isExpanded && (
           <div className="pt-1 space-y-1">
+            <NavLink icon={DashboardIcon} label="Resumen" isActive={activeView === `${moduleKey}-resumen`} onClick={() => setActiveView(`${moduleKey}-resumen`)} isCollapsed={isCollapsed} isSubItem />
             <NavLink icon={FileTextIcon} label="RA" isActive={activeView === `${moduleKey}-ra`} onClick={() => setActiveView(`${moduleKey}-ra`)} isCollapsed={isCollapsed} isSubItem />
             <NavLink icon={BookOpenIcon} label="Unidades de Trabajo" isActive={activeView === `${moduleKey}-ut`} onClick={() => setActiveView(`${moduleKey}-ut`)} isCollapsed={isCollapsed} isSubItem />
             <NavLink icon={PencilIcon} label="Instrumentos" isActive={activeView === `${moduleKey}-instrumentos`} onClick={() => setActiveView(`${moduleKey}-instrumentos`)} isCollapsed={isCollapsed} isSubItem />

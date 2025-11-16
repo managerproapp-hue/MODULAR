@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Service, ServiceEvaluation, Student, PracticeGroup, EntryExitRecord, PreServiceDayEvaluation, ServiceDayIndividualScores, Agrupacion, PreServiceIndividualEvaluation } from '../types';
 import { PRE_SERVICE_BEHAVIOR_ITEMS, BEHAVIOR_RATING_MAP, GROUP_EVALUATION_ITEMS, INDIVIDUAL_EVALUATION_ITEMS } from '../data/constants';
@@ -492,7 +490,7 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
                          <table className="min-w-full text-sm border-collapse">
                              <thead className="bg-gray-100"><tr><th className="p-2 border font-semibold text-left">Criterio</th>{evaluationUnits.map(unit => <th key={unit.id} className="p-2 border font-semibold">{unit.name}</th>)}</tr></thead>
                              <tbody>
-                                 {GROUP_EVALUATION_ITEMS.map((item, itemIndex) => (<tr key={item.id}><td className="p-2 border text-left">{item.label}</td>{evaluationUnits.map(unit => {const groupEval = evaluation.serviceDay.groupScores[unit.id]; return (<td key={unit.id} className="p-1 border align-middle"><input type="number" step="0.1" min="0" max={item.maxScore} value={groupEval?.scores[itemIndex] ?? ''} onChange={e => handleNumericInputChange(e, item.maxScore, (value) => {deepCloneAndUpdate(draft => {if (!draft.serviceDay.groupScores[unit.id]) draft.serviceDay.groupScores[unit.id] = { scores: Array(GROUP_EVALUATION_ITEMS.length).fill(null), observations: ''}; draft.serviceDay.groupScores[unit.id].scores[itemIndex] = value;})})} placeholder={`max: ${item.maxScore.toFixed(2)}`} className="w-full text-center p-1.5 rounded-md border-gray-300 placeholder-gray-300 disabled:bg-gray-100" disabled={isLocked}/></td>)})}</tr>))}
+                                 {GROUP_EVALUATION_ITEMS.map((item, itemIndex) => (<tr key={item.id}><td className="p-2 border text-left">{item.label}</td>{evaluationUnits.map(unit => {const groupEval = evaluation.serviceDay.groupScores[unit.id]; return (<td key={unit.id} className="p-1 border align-middle"><input type="number" step="0.1" min="0" max={item.maxScore} value={groupEval?.scores[itemIndex] ?? ''} onChange={e => handleNumericInputChange(e, item.maxScore, (value) => {deepCloneAndUpdate(draft => {if (!draft.serviceDay.groupScores[unit.id]) draft.serviceDay.groupScores[unit.id] = { scores: Array(GROUP_EVALUATION_ITEMS.length).fill(null), observations: ''}; draft.serviceDay.groupScores[unit.id]!.scores[itemIndex] = value;})})} placeholder={`max: ${item.maxScore.toFixed(2)}`} className="w-full text-center p-1.5 rounded-md border-gray-300 placeholder-gray-300 disabled:bg-gray-100" disabled={isLocked}/></td>)})}</tr>))}
                              </tbody>
                              <tfoot>
                                  <tr className="bg-gray-100 font-bold">
@@ -501,7 +499,7 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
                                  </tr>
                                  <tr>
                                     <td className="p-2 border text-left font-medium">Observaciones</td>
-                                    {evaluationUnits.map(unit => (<td key={unit.id} className="p-1 border"><textarea value={evaluation.serviceDay.groupScores[unit.id]?.observations || ''} onChange={e => { deepCloneAndUpdate(draft => { if (!draft.serviceDay.groupScores[unit.id]) { draft.serviceDay.groupScores[unit.id] = { scores: Array(GROUP_EVALUATION_ITEMS.length).fill(null), observations: '' }; } draft.serviceDay.groupScores[unit.id].observations = e.target.value; }); }} className="w-full h-20 p-1 rounded-md border-gray-200 resize-none disabled:bg-gray-100" placeholder="Anotaciones..." disabled={isLocked}/></td>))}
+                                    {evaluationUnits.map(unit => (<td key={unit.id} className="p-1 border"><textarea value={evaluation.serviceDay.groupScores[unit.id]?.observations || ''} onChange={e => { deepCloneAndUpdate(draft => { if (!draft.serviceDay.groupScores[unit.id]) { draft.serviceDay.groupScores[unit.id] = { scores: Array(GROUP_EVALUATION_ITEMS.length).fill(null), observations: '' }; } draft.serviceDay.groupScores[unit.id]!.observations = e.target.value; }); }} className="w-full h-20 p-1 rounded-md border-gray-200 resize-none disabled:bg-gray-100" placeholder="Anotaciones..." disabled={isLocked}/></td>))}
                                 </tr>
                              </tfoot>
                          </table>

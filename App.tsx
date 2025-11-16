@@ -17,6 +17,7 @@ const GestionAcademicaView = lazy(() => import('./views/GestionAcademicaView'));
 const RAView = lazy(() => import('./views/RAView'));
 const UTView = lazy(() => import('./views/UTView'));
 const InstrumentosView = lazy(() => import('./views/InstrumentosView'));
+const ModuleDashboardView = lazy(() => import('./views/ModuleDashboardView'));
 
 
 const AppContent: React.FC = () => {
@@ -63,6 +64,8 @@ const AppContent: React.FC = () => {
                 return <GestionAcademicaView />;
             
             // Módulo PC
+            case 'pc-resumen':
+                return <ModuleDashboardView module="pc" onNavigate={setActiveView} />;
             case 'pc-ra':
                 return <RAView module="pc" />;
             case 'pc-ut':
@@ -71,6 +74,8 @@ const AppContent: React.FC = () => {
                 return <InstrumentosView module="pc" />;
 
             // Módulo Optativa
+            case 'optativa-resumen':
+                return <ModuleDashboardView module="optativa" onNavigate={setActiveView} />;
             case 'optativa-ra':
                 return <RAView module="optativa" />;
             case 'optativa-ut':
@@ -79,6 +84,8 @@ const AppContent: React.FC = () => {
                 return <InstrumentosView module="optativa" />;
 
             // Módulo Proyecto
+            case 'proyecto-resumen':
+                return <ModuleDashboardView module="proyecto" onNavigate={setActiveView} />;
             case 'proyecto-ra':
                 return <RAView module="proyecto" />;
             case 'proyecto-ut':

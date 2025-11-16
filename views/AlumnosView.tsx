@@ -11,7 +11,8 @@ import { calculateRAGrade } from '../services/academicAnalytics';
 const AlumnosView: React.FC = () => {
   const { 
       students, setStudents,
-      resultadosAprendizaje, criteriosEvaluacion,
+      pcResultadosAprendizaje: resultadosAprendizaje,
+      pcCriteriosEvaluacion: criteriosEvaluacion,
       academicGrades, calculatedStudentGrades,
       handleFileUpload: contextHandleFileUpload, 
       addToast, handleUpdateStudent
