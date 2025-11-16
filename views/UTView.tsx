@@ -53,21 +53,12 @@ const UTFormModal: React.FC<UTFormModalProps> = ({ isOpen, onClose, onSave, init
 
 interface AsociacionesSummaryProps { 
     utId: string;
-    module: 'pc' | 'optativa' | 'proyecto';
+    resultadosAprendizaje: Record<string, ResultadoAprendizaje>;
+    criteriosEvaluacion: Record<string, CriterioEvaluacion>;
+    instrumentosEvaluacion: Record<string, InstrumentoEvaluacion>;
 }
 
-const AsociacionesSummary: React.FC<AsociacionesSummaryProps> = ({ utId, module }) => {
-    const { 
-        pcResultadosAprendizaje, pcCriteriosEvaluacion, pcInstrumentosEvaluacion,
-        optativaResultadosAprendizaje, optativaCriteriosEvaluacion, optativaInstrumentosEvaluacion,
-        proyectoResultadosAprendizaje, proyectoCriteriosEvaluacion, proyectoInstrumentosEvaluacion,
-    } = useAppContext();
-
-    const [resultadosAprendizaje, criteriosEvaluacion, instrumentosEvaluacion] = useMemo(() => {
-        if (module === 'optativa') return [optativaResultadosAprendizaje, optativaCriteriosEvaluacion, optativaInstrumentosEvaluacion];
-        if (module === 'proyecto') return [proyectoResultadosAprendizaje, proyectoCriteriosEvaluacion, proyectoInstrumentosEvaluacion];
-        return [pcResultadosAprendizaje, pcCriteriosEvaluacion, pcInstrumentosEvaluacion];
-    }, [module, pcResultadosAprendizaje, pcCriteriosEvaluacion, pcInstrumentosEvaluacion, optativaResultadosAprendizaje, optativaCriteriosEvaluacion, optativaInstrumentosEvaluacion, proyectoResultadosAprendizaje, proyectoCriteriosEvaluacion, proyectoInstrumentosEvaluacion]);
+const AsociacionesSummary: React.FC<AsociacionesSummaryProps> = ({ utId, resultadosAprendizaje, criteriosEvaluacion, instrumentosEvaluacion }) => {
 
     const structuredData = useMemo(() => {
         const grouped: Record<string, { ra: ResultadoAprendizaje; criterios: { criterio: CriterioEvaluacion; instrumentos: string[] }[] }> = {};
@@ -259,7 +250,12 @@ const UTView: React.FC<UTViewProps> = ({ module }) => {
                             {isExpanded && (
                                 <div className="mt-3 pt-3 border-t p-4">
                                     <h4 className="text-sm font-bold text-gray-500 uppercase mb-3">Planificación Académica Asociada</h4>
-                                    <AsociacionesSummary utId={ut.id} module={module}/>
+                                    <AsociacionesSummary 
+                                        utId={ut.id} 
+                                        resultadosAprendizaje={resultadosAprendizaje} 
+                                        criteriosEvaluacion={criteriosEvaluacion} 
+                                        instrumentosEvaluacion={instrumentosEvaluacion}
+                                    />
                                 </div>
                             )}
                         </div>

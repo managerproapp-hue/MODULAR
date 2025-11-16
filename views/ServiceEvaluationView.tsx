@@ -376,7 +376,11 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
     // FIX: Replaced if/else if with a switch statement for better type safety and to resolve indexed access error.
     const handlePreServiceIndividualUpdate = (date: string, studentId: string, field: keyof PreServiceIndividualEvaluation, value: any, behaviorItemId?: string) => {
         deepCloneAndUpdate(draft => {
-            const individualEval = draft.preService[date]?.individualEvaluations[studentId];
+            const preServiceDay = draft.preService[date];
+            if (!preServiceDay) {
+                return;
+            }
+            const individualEval = preServiceDay.individualEvaluations[studentId];
             if (!individualEval) {
                 return;
             }
@@ -394,16 +398,10 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
                     individualEval.observations = value;
                     break;
                 case 'attendance':
-                    individualEval.attendance = value;
-                    break;
                 case 'hasFichas':
-                    individualEval.hasFichas = value;
-                    break;
                 case 'hasUniforme':
-                    individualEval.hasUniforme = value;
-                    break;
                 case 'hasMaterial':
-                    individualEval.hasMaterial = value;
+                    individualEval[field] = value;
                     break;
             }
         });
