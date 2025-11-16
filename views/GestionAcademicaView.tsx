@@ -1,15 +1,142 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Student, CourseModuleGrades, GradeValue, StudentCalculatedGrades } from '../types';
+import { Student, CourseModuleGrades, GradeValue, StudentCalculatedGrades, InstrumentoEvaluacion } from '../types';
 import { ACADEMIC_EVALUATION_STRUCTURE, COURSE_MODULES } from '../data/constants';
-import { ClipboardListIcon, SaveIcon, ExportIcon } from '../components/icons';
+import { ClipboardListIcon, SaveIcon, ExportIcon, PencilIcon } from '../components/icons';
 import { downloadPdfWithTables } from '../components/printUtils';
 import { useAppContext } from '../context/AppContext';
 import { calculateStudentPeriodAverages } from '../services/gradeCalculator';
 
+const EvaluacionInstrumentosTab: React.FC = () => {
+    const { 
+        students, 
+        instrumentGrades, setInstrumentGrades,
+        optativaInstrumentosEvaluacion,
+        proyectoInstrumentosEvaluacion,
+        addToast
+    } = useAppContext();
+
+    const [selectedModule, setSelectedModule] = useState<'optativa' | 'proyecto'>('optativa');
+    const [localGrades, setLocalGrades] = useState(instrumentGrades);
+    const [isDirty, setIsDirty] = useState(false);
+
+    useEffect(() => {
+        setLocalGrades(instrumentGrades);
+        setIsDirty(false);
+    }, [instrumentGrades]);
+
+    useEffect(() => {
+        // When module changes, check if there are unsaved changes
+        if (isDirty) {
+            if (window.confirm('Tienes cambios sin guardar. ¿Quieres descartarlos y cambiar de módulo?')) {
+                setLocalGrades(instrumentGrades);
+                setIsDirty(false);
+            } else {
+                // Revert module selection
+                setSelectedModule(prev => prev === 'optativa' ? 'proyecto' : 'optativa');
+            }
+        }
+    }, [selectedModule]);
+
+
+    const activities = useMemo(() => {
+        const instruments = selectedModule === 'optativa' ? optativaInstrumentosEvaluacion : proyectoInstrumentosEvaluacion;
+        const acts = Object.values(instruments as Record<string, InstrumentoEvaluacion>).flatMap(inst => 
+            inst.activities.map(act => ({ ...act, instrumentName: inst.nombre }))
+        );
+        acts.sort((a,b) => {
+            if (a.trimester < b.trimester) return -1;
+            if (a.trimester > b.trimester) return 1;
+            return a.name.localeCompare(b.name);
+        });
+        return acts;
+    }, [selectedModule, optativaInstrumentosEvaluacion, proyectoInstrumentosEvaluacion]);
+
+    const sortedStudents = useMemo(() => [...students].sort((a, b) => a.apellido1.localeCompare(b.apellido1)), [students]);
+
+    const handleGradeChange = (studentId: string, activityId: string, value: string) => {
+        const numericValue = value === '' ? null : parseFloat(value);
+        if (value !== '' && (isNaN(numericValue) || numericValue < 0 || numericValue > 10)) return;
+
+        setLocalGrades(prev => {
+            const newGrades = JSON.parse(JSON.stringify(prev));
+            if (!newGrades[studentId]) newGrades[studentId] = {};
+            newGrades[studentId][activityId] = numericValue;
+            return newGrades;
+        });
+        setIsDirty(true);
+    };
+
+    const handleSaveChanges = () => {
+        setInstrumentGrades(localGrades);
+        setIsDirty(false);
+        addToast('Calificaciones guardadas con éxito.', 'success');
+    };
+
+    return (
+        <div>
+            <div className="flex items-center justify-between gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+                 <div className="flex items-center gap-4">
+                    <label className="font-semibold">Seleccionar Módulo:</label>
+                    <select value={selectedModule} onChange={e => setSelectedModule(e.target.value as 'optativa' | 'proyecto')} className="p-2 border rounded-md bg-white shadow-sm">
+                        <option value="optativa">Optativa</option>
+                        <option value="proyecto">Proyecto</option>
+                    </select>
+                 </div>
+                 <button onClick={handleSaveChanges} disabled={!isDirty} className={`flex items-center px-4 py-2 rounded-lg font-semibold transition ${!isDirty ? 'bg-green-200 text-green-500 cursor-not-allowed' : 'bg-green-500 text-white hover:bg-green-600'}`}>
+                    <SaveIcon className="w-5 h-5 mr-1" /> Guardar Cambios
+                </button>
+            </div>
+            
+            <div className="overflow-x-auto">
+                 {activities.length > 0 ? (
+                    <table className="min-w-full text-xs text-center border-collapse">
+                        <thead className="bg-gray-100 sticky top-0 z-10">
+                            <tr>
+                                <th className="p-2 border font-semibold text-gray-600 w-48 text-left sticky left-0 bg-gray-100">Alumno</th>
+                                {activities.map(act => (
+                                    <th key={act.id} className="p-2 border font-semibold text-gray-600" title={act.instrumentName}>
+                                        {act.name} ({act.trimester.toUpperCase()})
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                             {sortedStudents.map((student, index) => (
+                                <tr key={student.id} className={`group ${index % 2 !== 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-yellow-50`}>
+                                    <td className={`p-1 border text-left font-semibold text-gray-800 w-48 sticky left-0 group-hover:bg-yellow-50 ${index % 2 !== 0 ? 'bg-gray-50' : 'bg-white'}`}>{`${student.apellido1} ${student.apellido2}, ${student.nombre}`}</td>
+                                    {activities.map(act => (
+                                        <td key={act.id} className="border">
+                                            <input
+                                                type="number"
+                                                step="0.1"
+                                                min="0" max="10"
+                                                value={localGrades[student.id]?.[act.id] ?? ''}
+                                                onChange={e => handleGradeChange(student.id, act.id, e.target.value)}
+                                                className="w-20 p-1.5 text-center bg-transparent focus:bg-yellow-100 outline-none"
+                                            />
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                 ) : (
+                     <div className="p-8 text-center text-gray-500">
+                         No hay actividades de evaluación definidas para el módulo de {selectedModule}.
+                         <br/>
+                         Puedes añadirlas en la sección de 'Instrumentos' del módulo correspondiente.
+                     </div>
+                 )}
+            </div>
+        </div>
+    );
+}
+
+
 const GestionAcademicaView: React.FC = () => {
     const { students, academicGrades, setAcademicGrades, courseGrades, setCourseGrades, calculatedStudentGrades, teacherData, instituteData, addToast } = useAppContext();
     
-    const [activeTab, setActiveTab] = useState('principal');
+    const [activeTab, setActiveTab] = useState<'principal' | 'otros' | 'instrumentos'>('principal');
     const [localAcademicGrades, setLocalAcademicGrades] = useState(academicGrades);
     const [localCourseGrades, setLocalCourseGrades] = useState(courseGrades);
     const [isDirty, setIsDirty] = useState(false);
@@ -90,10 +217,13 @@ const GestionAcademicaView: React.FC = () => {
     };
 
     const handleSaveChanges = () => {
-        setAcademicGrades(localAcademicGrades);
-        setCourseGrades(localCourseGrades);
-        setIsDirty(false);
-        addToast('Calificaciones guardadas con éxito.', 'success');
+        if (activeTab === 'principal' || activeTab === 'otros') {
+            setAcademicGrades(localAcademicGrades);
+            setCourseGrades(localCourseGrades);
+            setIsDirty(false);
+            addToast('Calificaciones guardadas con éxito.', 'success');
+        }
+        // Save for 'instrumentos' tab is handled within its component
     };
 
     const handleExport = () => { /* PDF Export logic */ };
@@ -108,22 +238,25 @@ const GestionAcademicaView: React.FC = () => {
                 </h1>
                 <p className="text-gray-500 mt-1">Introduce y visualiza todas las calificaciones del curso.</p>
             </div>
-            <div className="flex items-center space-x-2">
-                 <button onClick={handleSaveChanges} disabled={!isDirty} className={`flex items-center px-4 py-2 rounded-lg font-semibold transition ${!isDirty ? 'bg-green-200 text-green-500 cursor-not-allowed' : 'bg-green-500 text-white hover:bg-green-600'}`}>
-                    <SaveIcon className="w-5 h-5 mr-1" /> Guardar Cambios
-                </button>
-            </div>
+            {(activeTab === 'principal' || activeTab === 'otros') && (
+                <div className="flex items-center space-x-2">
+                    <button onClick={handleSaveChanges} disabled={!isDirty} className={`flex items-center px-4 py-2 rounded-lg font-semibold transition ${!isDirty ? 'bg-green-200 text-green-500 cursor-not-allowed' : 'bg-green-500 text-white hover:bg-green-600'}`}>
+                        <SaveIcon className="w-5 h-5 mr-1" /> Guardar Cambios
+                    </button>
+                </div>
+            )}
         </header>
 
         <div className="border-b border-gray-200 mb-6">
             <nav className="flex space-x-2">
-                 <button onClick={() => setActiveTab('principal')} className={`px-4 py-2 font-medium text-sm rounded-md ${activeTab === 'principal' ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:bg-gray-100'}`}>Módulo Principal</button>
+                 <button onClick={() => setActiveTab('principal')} className={`px-4 py-2 font-medium text-sm rounded-md ${activeTab === 'principal' ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:bg-gray-100'}`}>Módulo Principal (PC)</button>
+                 <button onClick={() => setActiveTab('instrumentos')} className={`px-4 py-2 font-medium text-sm rounded-md ${activeTab === 'instrumentos' ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:bg-gray-100'}`}><PencilIcon className="w-4 h-4 mr-2 inline-block"/>Evaluación por Instrumentos</button>
                  <button onClick={() => setActiveTab('otros')} className={`px-4 py-2 font-medium text-sm rounded-md ${activeTab === 'otros' ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:bg-gray-100'}`}>Otros Módulos</button>
             </nav>
         </div>
 
         <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        {activeTab === 'principal' ? (
+        {activeTab === 'principal' && (
             <div className="overflow-x-auto">
                 <table className="min-w-full text-xs text-center border-collapse">
                     <thead className="bg-gray-100 sticky top-0 z-10">
@@ -184,7 +317,11 @@ const GestionAcademicaView: React.FC = () => {
                     </tbody>
                 </table>
             </div>
-        ) : (
+        )}
+        {activeTab === 'instrumentos' && (
+            <EvaluacionInstrumentosTab />
+        )}
+        {activeTab === 'otros' && (
              <div className="overflow-x-auto">
                 <table className="min-w-full text-sm text-center">
                      <thead className="bg-gray-100">

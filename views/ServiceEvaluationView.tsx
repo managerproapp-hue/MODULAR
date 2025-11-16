@@ -373,39 +373,25 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
         }
     };
 
+    // FIX: Refactored to use type-safe conditional assignments instead of a switch with type assertions.
     const handlePreServiceIndividualUpdate = (date: string, studentId: string, field: keyof PreServiceIndividualEvaluation, value: any, behaviorItemId?: string) => {
         deepCloneAndUpdate(draft => {
             const individualEval = draft.preService[date]?.individualEvaluations[studentId];
-            if (individualEval) {
-                if (field === 'behaviorScores' && behaviorItemId) {
+            if (!individualEval) {
+                return;
+            }
+    
+            if (field === 'behaviorScores') {
+                if (behaviorItemId) {
                     if (!individualEval.behaviorScores) {
                         individualEval.behaviorScores = {};
                     }
                     individualEval.behaviorScores[behaviorItemId] = value;
-                } else {
-                    // FIX: Replaced generic indexed access with a type-safe switch to resolve a TypeScript error.
-                    // This ensures each property is assigned a value of the correct type.
-                    switch (field) {
-                        case 'attendance':
-                            individualEval.attendance = value as boolean;
-                            break;
-                        case 'hasFichas':
-                            individualEval.hasFichas = value as boolean;
-                            break;
-                        case 'hasUniforme':
-                            individualEval.hasUniforme = value as boolean;
-                            break;
-                        case 'hasMaterial':
-                            individualEval.hasMaterial = value as boolean;
-                            break;
-                        case 'observations':
-                            individualEval.observations = value as string;
-                            break;
-                        case 'behaviorScores':
-                            // This case is handled above, but included for exhaustiveness check
-                            break;
-                    }
                 }
+            } else if (field === 'observations') {
+                individualEval.observations = value;
+            } else if (field === 'attendance' || field === 'hasFichas' || field === 'hasUniforme' || field === 'hasMaterial') {
+                individualEval[field] = value;
             }
         });
     };

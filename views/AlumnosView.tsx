@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo } from 'react';
 import { Student, ResultadoAprendizaje } from '../types';
 import StudentTable from '../components/StudentTable';

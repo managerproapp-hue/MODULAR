@@ -1,7 +1,7 @@
 
 
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { Student, TimelineEvent, PreServiceDayEvaluation, ResultadoAprendizaje, Service, CourseModuleGrades, GradeValue } from '../types';
+import { Student, TimelineEvent, PreServiceDayEvaluation, ResultadoAprendizaje, Service, CourseModuleGrades, GradeValue, CriterioEvaluacion } from '../types';
 import { 
     PencilIcon,
     CameraIcon,
@@ -121,8 +121,9 @@ const FichaAlumno: React.FC<FichaAlumnoProps> = ({ student, onBack, onUpdatePhot
     students,
     teacherData, 
     instituteData,
-    pcResultadosAprendizaje, 
-    pcCriteriosEvaluacion, 
+    pcResultadosAprendizaje, pcCriteriosEvaluacion,
+    optativaResultadosAprendizaje, optativaCriteriosEvaluacion,
+    proyectoResultadosAprendizaje, proyectoCriteriosEvaluacion,
     academicGrades: allAcademicGrades,
     instrumentGrades,
     calculatedStudentGrades: allCalculatedGrades,
@@ -153,8 +154,6 @@ const FichaAlumno: React.FC<FichaAlumnoProps> = ({ student, onBack, onUpdatePhot
   );
   
   const sostenibilidadAverages = useMemo(() => {
-    // This logic might need to be removed or adapted if 'optativo' data is fully modularized.
-    // For now, it's kept for compatibility but might not be functional.
     return { t1: null, t2: null };
   }, [student.id]);
 
@@ -273,7 +272,6 @@ const FichaAlumno: React.FC<FichaAlumnoProps> = ({ student, onBack, onUpdatePhot
                 
                 if (!participationInfo) return null;
 
-                // Grade for current student
                 const individualEval = evaluation.serviceDay.individualScores[student.id];
                 if (!individualEval || individualEval.attendance === false) return null;
                 const individualGrade = (individualEval.scores || []).reduce((sum, score) => sum + (score || 0), 0);
@@ -292,7 +290,6 @@ const FichaAlumno: React.FC<FichaAlumnoProps> = ({ student, onBack, onUpdatePhot
                     studentPracticeGroup ? evaluation.serviceDay.groupScores[studentPracticeGroup.id]?.observations : ''
                 ].filter(Boolean).join(' | ');
                 
-                // Calculate class average for this service
                 const gradesOfAllStudents: number[] = [];
                 students.forEach(s => {
                     let participated = false;
@@ -329,6 +326,18 @@ const FichaAlumno: React.FC<FichaAlumnoProps> = ({ student, onBack, onUpdatePhot
             .sort((a,b) => new Date(a.service.date).getTime() - new Date(b.service.date).getTime());
     }, [student.id, students, services, serviceEvaluations, practiceGroups]);
 
+    const { currentRAs, currentCriterios } = useMemo(() => {
+        switch (activeModuleForRA) {
+            case 'pc':
+                return { currentRAs: pcResultadosAprendizaje, currentCriterios: pcCriteriosEvaluacion };
+            case 'optativa':
+                return { currentRAs: optativaResultadosAprendizaje, currentCriterios: optativaCriteriosEvaluacion };
+            case 'proyecto':
+                return { currentRAs: proyectoResultadosAprendizaje, currentCriterios: proyectoCriteriosEvaluacion };
+            default:
+                return { currentRAs: {}, currentCriterios: {} };
+        }
+    }, [activeModuleForRA, pcResultadosAprendizaje, pcCriteriosEvaluacion, optativaResultadosAprendizaje, optativaCriteriosEvaluacion, proyectoResultadosAprendizaje, proyectoCriteriosEvaluacion]);
 
   const TimelineIcon: React.FC<{type: TimelineEvent['type']}> = ({ type }) => {
     const baseClass = "w-8 h-8 rounded-full flex items-center justify-center text-white";
@@ -508,9 +517,17 @@ const FichaAlumno: React.FC<FichaAlumnoProps> = ({ student, onBack, onUpdatePhot
 
         {activeTab === 'ra' && (
              <div className="space-y-4">
-                {pcResultadosAprendizaje && Object.values(pcResultadosAprendizaje).map((ra: ResultadoAprendizaje) => {
+                <div className="p-4 bg-white rounded-lg shadow-sm">
+                    <label htmlFor="ra-module-selector" className="font-semibold mr-4">Módulo:</label>
+                    <select id="ra-module-selector" value={activeModuleForRA} onChange={e => setActiveModuleForRA(e.target.value as any)} className="p-2 border rounded-md bg-white shadow-sm">
+                        <option value="pc">Productos Culinarios (PC)</option>
+                        <option value="optativa">Optativa</option>
+                        <option value="proyecto">Proyecto</option>
+                    </select>
+                </div>
+                {Object.values(currentRAs as Record<string, ResultadoAprendizaje>).map((ra) => {
                     const isExpanded = expandedRAs.has(ra.id);
-                    const { grade, ponderacionTotal } = calculateRAGrade(ra, student.id, 'pc', pcCriteriosEvaluacion, allAcademicGrades, instrumentGrades, allCalculatedGrades);
+                    const { grade, ponderacionTotal } = calculateRAGrade(ra, student.id, activeModuleForRA, currentCriterios as Record<string, CriterioEvaluacion>, allAcademicGrades, instrumentGrades, allCalculatedGrades);
                     return (
                         <div key={ra.id} className="bg-white shadow-sm rounded-lg overflow-hidden">
                             <div className="flex items-center p-4 cursor-pointer hover:bg-gray-50" onClick={() => setExpandedRAs(p => p.has(ra.id) ? (p.delete(ra.id), new Set(p)) : new Set(p.add(ra.id)))}>
@@ -518,7 +535,7 @@ const FichaAlumno: React.FC<FichaAlumnoProps> = ({ student, onBack, onUpdatePhot
                                 <div className="flex-1 ml-2"><h4 className="font-bold text-gray-800">{ra.nombre}</h4><p className="text-xs text-gray-500">Ponderación evaluada: {ponderacionTotal}%</p></div>
                                 <div className="text-right"><p className="text-sm font-medium text-gray-500">Nota RA</p><p className={`text-2xl font-bold ${grade === null ? 'text-gray-400' : grade < 5 ? 'text-red-600' : 'text-green-600'}`}>{grade?.toFixed(2) ?? 'N/E'}</p></div>
                             </div>
-                            {isExpanded && (<div className="border-t bg-gray-50 p-4"><h5 className="text-sm font-semibold text-gray-600 mb-2">Desglose de Criterios</h5><div className="space-y-2">{ra.criteriosEvaluacion.map(cId => {const c = pcCriteriosEvaluacion[cId]; if(!c) return null; const cGrade = calculateCriterioGrade(c,student.id, 'pc', allAcademicGrades, instrumentGrades, allCalculatedGrades); return (<div key={c.id} className="flex justify-between p-2 bg-white rounded-md border"><div><p className="text-sm text-gray-800">{c.descripcion}</p></div><div className="text-right flex-shrink-0 ml-4"><p className="text-xs text-gray-500">Pond: {c.ponderacion}%</p><p className={`font-bold ${cGrade === null ? 'text-gray-400' : cGrade < 5 ? 'text-red-500' : 'text-gray-800'}`}>{cGrade?.toFixed(2) ?? 'N/E'}</p></div></div>);})}</div></div>)}
+                            {isExpanded && (<div className="border-t bg-gray-50 p-4"><h5 className="text-sm font-semibold text-gray-600 mb-2">Desglose de Criterios</h5><div className="space-y-2">{ra.criteriosEvaluacion.map(cId => {const c = currentCriterios[cId]; if(!c) return null; const cGrade = calculateCriterioGrade(c,student.id, activeModuleForRA, allAcademicGrades, instrumentGrades, allCalculatedGrades); return (<div key={c.id} className="flex justify-between p-2 bg-white rounded-md border"><div><p className="text-sm text-gray-800">{c.descripcion}</p></div><div className="text-right flex-shrink-0 ml-4"><p className="text-xs text-gray-500">Pond: {c.ponderacion}%</p><p className={`font-bold ${cGrade === null ? 'text-gray-400' : cGrade < 5 ? 'text-red-500' : 'text-gray-800'}`}>{cGrade?.toFixed(2) ?? 'N/E'}</p></div></div>);})}</div></div>)}
                         </div>
                     )
                 })}

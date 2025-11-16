@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo } from '
 import { 
     Student, PracticeGroup, Service, ServiceEvaluation, ServiceRole, EntryExitRecord, 
     AcademicGrades, CourseGrades, PracticalExamEvaluation, TeacherData, InstituteData, Toast, ToastType, StudentCalculatedGrades, TrimesterDates,
-    ResultadoAprendizaje, CriterioEvaluacion, InstrumentoEvaluacion, Profesor, UnidadTrabajo,
+    ResultadoAprendizaje, CriterioEvaluacion, InstrumentoEvaluacion, Profesor, UnidadTrabajo, InstrumentGrades,
 } from '../types';
 import { parseFile } from '../services/csvParser';
 
@@ -19,7 +19,14 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<Re
   const [storedValue, setStoredValue] = useState<T>(() => {
     try {
       const item = window.localStorage.getItem(key);
-      const parsedItem = item ? JSON.parse(item) : initialValue;
+      if (item === null || item === 'undefined') {
+          return initialValue;
+      }
+      const parsedItem = JSON.parse(item);
+
+      if (parsedItem === null && initialValue !== null) {
+          return initialValue;
+      }
       
       if (key === 'services' && Array.isArray(parsedItem)) {
           return parsedItem.map((s: any) => ({
@@ -30,7 +37,7 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<Re
 
       return parsedItem;
     } catch (error) {
-      console.error(error);
+      console.error(`Error reading localStorage key “${key}”:`, error);
       return initialValue;
     }
   });
@@ -41,7 +48,7 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<Re
       setStoredValue(valueToStore);
       window.localStorage.setItem(key, JSON.stringify(valueToStore));
     } catch (error) {
-      console.error(error);
+      console.error(`Error setting localStorage key “${key}”:`, error);
     }
   };
 
@@ -70,6 +77,8 @@ interface AppContextType {
     setEntryExitRecords: React.Dispatch<React.SetStateAction<EntryExitRecord[]>>;
     academicGrades: AcademicGrades;
     setAcademicGrades: React.Dispatch<React.SetStateAction<AcademicGrades>>;
+    instrumentGrades: InstrumentGrades;
+    setInstrumentGrades: React.Dispatch<React.SetStateAction<InstrumentGrades>>;
     courseGrades: CourseGrades;
     setCourseGrades: React.Dispatch<React.SetStateAction<CourseGrades>>;
     practicalExamEvaluations: PracticalExamEvaluation[];
@@ -179,6 +188,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Academic Grades States
     const [academicGrades, setAcademicGrades] = useLocalStorage<AcademicGrades>('academicGrades', {});
+    const [instrumentGrades, setInstrumentGrades] = useLocalStorage<InstrumentGrades>('instrumentGrades', {});
     const [courseGrades, setCourseGrades] = useLocalStorage<CourseGrades>('courseGrades', {});
     const [practicalExamEvaluations, setPracticalExamEvaluations] = useLocalStorage<PracticalExamEvaluation[]>('practicalExamEvaluations', []);
     
@@ -452,7 +462,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const handleResetApp = () => {
         const keysToRemove = [
             'students', 'practiceGroups', 'services', 'serviceEvaluations', 'serviceRoles', 'entryExitRecords', 
-            'academicGrades', 'courseGrades', 'practicalExamEvaluations', 'teacher-app-data', 'institute-app-data', 
+            'academicGrades', 'instrumentGrades', 'courseGrades', 'practicalExamEvaluations', 'teacher-app-data', 'institute-app-data', 
             'trimester-dates',
             'pc-resultadosAprendizaje', 'pc-criteriosEvaluacion', 'pc-instrumentosEvaluacion', 'pc-unidadesTrabajo',
             'optativa-resultadosAprendizaje', 'optativa-criteriosEvaluacion', 'optativa-instrumentosEvaluacion', 'optativa-unidadesTrabajo',
@@ -471,7 +481,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     const value: AppContextType = {
-        students, setStudents, practiceGroups, setPracticeGroups, services, setServices, serviceEvaluations, setServiceEvaluations, serviceRoles, setServiceRoles, entryExitRecords, setEntryExitRecords, academicGrades, setAcademicGrades, courseGrades, setCourseGrades, practicalExamEvaluations, setPracticalExamEvaluations, teacherData, setTeacherData, instituteData, setInstituteData, trimesterDates, setTrimesterDates,
+        students, setStudents, practiceGroups, setPracticeGroups, services, setServices, serviceEvaluations, setServiceEvaluations, serviceRoles, setServiceRoles, entryExitRecords, setEntryExitRecords, academicGrades, setAcademicGrades, instrumentGrades, setInstrumentGrades, courseGrades, setCourseGrades, practicalExamEvaluations, setPracticalExamEvaluations, teacherData, setTeacherData, instituteData, setInstituteData, trimesterDates, setTrimesterDates,
         
         pcResultadosAprendizaje, setPcResultadosAprendizaje, pcCriteriosEvaluacion, setPcCriteriosEvaluacion, pcInstrumentosEvaluacion, setPcInstrumentosEvaluacion, pcUnidadesTrabajo, setPcUnidadesTrabajo,
         optativaResultadosAprendizaje, setOptativaResultadosAprendizaje, optativaCriteriosEvaluacion, setOptativaCriteriosEvaluacion, optativaInstrumentosEvaluacion, setOptativaInstrumentosEvaluacion, optativaUnidadesTrabajo, setOptativaUnidadesTrabajo,
