@@ -42,15 +42,14 @@ const PreServiceIndividualTable: React.FC<{
                     </tr>
                 </thead>
                 <tbody>
-                    {/* FIX: Corrected type assertion for accessing object property */}
+                    {/* FIX: Correctly typed the iterated fields to avoid type assertion on access. */}
                     {(['attendance', 'hasFichas', 'hasUniforme', 'hasMaterial'] as const).map(field => (
                         <tr key={field}>
                             <td className="p-2 border font-medium capitalize text-left">{field === 'attendance' ? 'Asistencia' : field.replace('has', '')}</td>
                             {studentsInGroup.map(s => {
-                                // FIX: Corrected type assertion for accessing object property.
-                                // The `field` variable, though derived from a `const` array, might be inferred as a generic `string` by the compiler,
-                                // which is not a valid index for `PreServiceIndividualEvaluation`. Explicitly casting it to the specific keys resolves the issue.
-                                const isChecked = evaluationData?.individualEvaluations[s.id]?.[field as 'attendance' | 'hasFichas' | 'hasUniforme' | 'hasMaterial'] ?? (field === 'attendance');
+                                const individualEval = evaluationData?.individualEvaluations[s.id];
+                                // With `as const` on the array, `field` is correctly typed, so we can directly access the property.
+                                const isChecked = individualEval?.[field] ?? (field === 'attendance');
                                 return (
                                 <td key={s.id} className="p-2 border text-center">
                                     <input type="checkbox" checked={isChecked} onChange={e => onUpdate(s.id, field, e.target.checked)} className="h-4 w-4" disabled={isLocked} />

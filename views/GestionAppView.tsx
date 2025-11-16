@@ -136,8 +136,11 @@ const GestionAppView: React.FC = () => {
     
     const backupOptions = [
         'students', 'practiceGroups', 'services', 'serviceEvaluations', 'serviceRoles', 'entryExitRecords', 
-        'academicGrades', 'courseGrades', 'practicalExamEvaluations', 'optativoExams', 'optativoGrades',
-        'resultadosAprendizaje', 'criteriosEvaluacion', 'instrumentosEvaluacion', 'profesores', 'unidadesTrabajo',
+        'academicGrades', 'courseGrades', 'practicalExamEvaluations', 
+        'pc-resultadosAprendizaje', 'pc-criteriosEvaluacion', 'pc-instrumentosEvaluacion', 'pc-unidadesTrabajo',
+        'optativa-resultadosAprendizaje', 'optativa-criteriosEvaluacion', 'optativa-instrumentosEvaluacion', 'optativa-unidadesTrabajo',
+        'proyecto-resultadosAprendizaje', 'proyecto-criteriosEvaluacion', 'proyecto-instrumentosEvaluacion', 'proyecto-unidadesTrabajo',
+        'profesores',
         'teacher-app-data', 'institute-app-data', 'trimester-dates'
     ];
 
@@ -151,13 +154,19 @@ const GestionAppView: React.FC = () => {
         'academicGrades': 'Notas Académicas',
         'courseGrades': 'Notas Otros Módulos',
         'practicalExamEvaluations': 'Exámenes Prácticos',
-        'optativoExams': 'Exámenes Optativo',
-        'optativoGrades': 'Notas Optativo',
-        'resultadosAprendizaje': 'Resultados Aprendizaje',
-        'criteriosEvaluacion': 'Criterios Evaluación',
-        'instrumentosEvaluacion': 'Instrumentos',
+        'pc-resultadosAprendizaje': 'PC: RAs',
+        'pc-criteriosEvaluacion': 'PC: Criterios',
+        'pc-instrumentosEvaluacion': 'PC: Instrumentos',
+        'pc-unidadesTrabajo': 'PC: Unidades Trabajo',
+        'optativa-resultadosAprendizaje': 'Optativa: RAs',
+        'optativa-criteriosEvaluacion': 'Optativa: Criterios',
+        'optativa-instrumentosEvaluacion': 'Optativa: Instrumentos',
+        'optativa-unidadesTrabajo': 'Optativa: Unidades Trabajo',
+        'proyecto-resultadosAprendizaje': 'Proyecto: RAs',
+        'proyecto-criteriosEvaluacion': 'Proyecto: Criterios',
+        'proyecto-instrumentosEvaluacion': 'Proyecto: Instrumentos',
+        'proyecto-unidadesTrabajo': 'Proyecto: Unidades Trabajo',
         'profesores': 'Profesores',
-        'unidadesTrabajo': 'Unidades de Trabajo',
         'teacher-app-data': 'Datos del Profesor',
         'institute-app-data': 'Datos del Instituto',
         'trimester-dates': 'Fechas Trimestres'
@@ -504,7 +513,6 @@ const GestionAppView: React.FC = () => {
                 availableKeys={backupData ? Object.keys(backupData).map((k: string) => backupOptionLabels[k] ?? k) : []}
                 selectedKeys={new Set(Array.from(restoreKeys).map((k: string) => backupOptionLabels[k] ?? k))}
                 onKeyToggle={(label: string) => {
-                    // FIX: Explicitly type `k` to resolve potential type inference issues with indexing.
                     const key = Object.keys(backupOptionLabels).find((k: string) => backupOptionLabels[k] === label) ?? label;
                     handleToggleRestoreKey(key);
                 }}

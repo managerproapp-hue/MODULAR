@@ -296,7 +296,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const onDeleteRole = (roleId: string) => { /* ... unchanged ... */ };
     const handleSaveEntryExitRecord = (record: Omit<EntryExitRecord, 'id' | 'studentId'>, studentIds: string[]) => { /* ... unchanged ... */ };
     const handleSavePracticalExam = (evaluation: PracticalExamEvaluation) => { /* ... unchanged ... */ };
-    const handleResetApp = () => { /* ... unchanged ... */ };
+    
+    const handleResetApp = () => {
+        const keysToRemove = [
+            'students', 'practiceGroups', 'services', 'serviceEvaluations', 'serviceRoles', 'entryExitRecords', 
+            'academicGrades', 'courseGrades', 'practicalExamEvaluations', 'teacher-app-data', 'institute-app-data', 
+            'trimester-dates',
+            'pc-resultadosAprendizaje', 'pc-criteriosEvaluacion', 'pc-instrumentosEvaluacion', 'pc-unidadesTrabajo',
+            'optativa-resultadosAprendizaje', 'optativa-criteriosEvaluacion', 'optativa-instrumentosEvaluacion', 'optativa-unidadesTrabajo',
+            'proyecto-resultadosAprendizaje', 'proyecto-criteriosEvaluacion', 'proyecto-instrumentosEvaluacion', 'proyecto-unidadesTrabajo',
+            'profesores'
+        ];
+        
+        keysToRemove.forEach(key => {
+            window.localStorage.removeItem(key);
+        });
+        
+        addToast('Aplicación reseteada. Recargando...', 'success');
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
+    };
 
     const value: AppContextType = {
         students, setStudents, practiceGroups, setPracticeGroups, services, setServices, serviceEvaluations, setServiceEvaluations, serviceRoles, setServiceRoles, entryExitRecords, setEntryExitRecords, academicGrades, setAcademicGrades, courseGrades, setCourseGrades, practicalExamEvaluations, setPracticalExamEvaluations, teacherData, setTeacherData, instituteData, setInstituteData, trimesterDates, setTrimesterDates,

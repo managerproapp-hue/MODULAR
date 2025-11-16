@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-// FIX: Add StudentCalculatedGrades to imports
-import { Student, CourseModuleGrades, GradeValue, StudentCalculatedGrades, OptativoExam } from '../types';
+import { Student, CourseModuleGrades, GradeValue, StudentCalculatedGrades } from '../types';
 import { ACADEMIC_EVALUATION_STRUCTURE, COURSE_MODULES } from '../data/constants';
 import { ClipboardListIcon, SaveIcon, ExportIcon } from '../components/icons';
 import { downloadPdfWithTables } from '../components/printUtils';
@@ -8,7 +7,7 @@ import { useAppContext } from '../context/AppContext';
 import { calculateStudentPeriodAverages } from '../services/gradeCalculator';
 
 const GestionAcademicaView: React.FC = () => {
-    const { students, academicGrades, setAcademicGrades, courseGrades, setCourseGrades, calculatedStudentGrades, teacherData, instituteData, addToast, optativoExams, optativoGrades } = useAppContext();
+    const { students, academicGrades, setAcademicGrades, courseGrades, setCourseGrades, calculatedStudentGrades, teacherData, instituteData, addToast } = useAppContext();
     
     const [activeTab, setActiveTab] = useState('principal');
     const [localAcademicGrades, setLocalAcademicGrades] = useState(academicGrades);
@@ -20,26 +19,6 @@ const GestionAcademicaView: React.FC = () => {
         setLocalCourseGrades(JSON.parse(JSON.stringify(courseGrades)));
         setIsDirty(false);
     }, [academicGrades, courseGrades]);
-
-    const sostenibilidadAverages = useMemo(() => {
-        const averages: { [studentId: string]: { t1: number | null, t2: number | null } } = {};
-        const examsT1 = optativoExams.filter(e => e.trimester === 't1');
-        const examsT2 = optativoExams.filter(e => e.trimester === 't2');
-
-        students.forEach(student => {
-            const studentGrades = optativoGrades[student.id] || {};
-    
-            const gradesT1 = examsT1.map(e => studentGrades[e.id]).filter(g => g !== null && g !== undefined) as number[];
-            const avgT1 = gradesT1.length > 0 ? gradesT1.reduce((sum, g) => sum + g, 0) / gradesT1.length : null;
-    
-            const gradesT2 = examsT2.map(e => studentGrades[e.id]).filter(g => g !== null && g !== undefined) as number[];
-            const avgT2 = gradesT2.length > 0 ? gradesT2.reduce((sum, g) => sum + g, 0) / gradesT2.length : null;
-    
-            averages[student.id] = { t1: avgT1, t2: avgT2 };
-        });
-        return averages;
-    }, [students, optativoExams, optativoGrades]);
-
 
     const finalGradesAndAverages = useMemo(() => {
         const studentGroups = students.reduce((acc, student) => {
@@ -230,13 +209,9 @@ const GestionAcademicaView: React.FC = () => {
                             <tr key={student.id} className={`group ${index % 2 !== 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-yellow-50`}>
                                 <td className={`p-1 border text-left font-semibold text-gray-800 sticky left-0 group-hover:bg-yellow-50 ${index % 2 !== 0 ? 'bg-gray-50' : 'bg-white'}`}>{`${student.apellido1} ${student.apellido2}, ${student.nombre}`}</td>
                                 {COURSE_MODULES.map(module => {
-                                    const isSostenibilidad = module.name === 'Sostenibilidad aplicada al sistema productivo';
                                     const studentCourseGrades = localCourseGrades[student.id] || {};
                                     const isConvalidated = studentCourseGrades[module.name]?.isConvalidated;
-                                    
-                                    const grades = isSostenibilidad 
-                                        ? sostenibilidadAverages[student.id]
-                                        : studentCourseGrades[module.name] || {};
+                                    const grades = studentCourseGrades[module.name] || {};
 
                                     const validGrades = ([grades.t1, grades.t2, module.trimesters === 3 ? (grades as any).t3 : undefined] as (GradeValue | undefined)[])
                                         .map(g => g !== null && g !== undefined ? parseFloat(String(g)) : NaN)
@@ -254,18 +229,16 @@ const GestionAcademicaView: React.FC = () => {
                                             ) : (
                                                 <>
                                                     <td className="border">
-                                                        {isSostenibilidad ? (<span className="p-1.5 block">{grades.t1?.toFixed(2) ?? '-'}</span>) : (<input type="number" step="0.1" min="0" max="10" value={(grades as CourseModuleGrades).t1 ?? ''} onChange={e => handleCourseGradeChange(student.id, module.name, 't1', e.target.value)} className="w-16 p-1.5 text-center bg-transparent focus:bg-yellow-100 outline-none" />)}
+                                                        <input type="number" step="0.1" min="0" max="10" value={(grades as CourseModuleGrades).t1 ?? ''} onChange={e => handleCourseGradeChange(student.id, module.name, 't1', e.target.value)} className="w-16 p-1.5 text-center bg-transparent focus:bg-yellow-100 outline-none" />
                                                     </td>
                                                     <td className="border">
-                                                        {isSostenibilidad ? (<span className="p-1.5 block">{grades.t2?.toFixed(2) ?? '-'}</span>) : (<input type="number" step="0.1" min="0" max="10" value={(grades as CourseModuleGrades).t2 ?? ''} onChange={e => handleCourseGradeChange(student.id, module.name, 't2', e.target.value)} className="w-16 p-1.5 text-center bg-transparent focus:bg-yellow-100 outline-none" />)}
+                                                        <input type="number" step="0.1" min="0" max="10" value={(grades as CourseModuleGrades).t2 ?? ''} onChange={e => handleCourseGradeChange(student.id, module.name, 't2', e.target.value)} className="w-16 p-1.5 text-center bg-transparent focus:bg-yellow-100 outline-none" />
                                                     </td>
                                                     {module.trimesters === 3 && (<td className="border"><input type="number" step="0.1" min="0" max="10" value={(grades as CourseModuleGrades).t3 ?? ''} onChange={e => handleCourseGradeChange(student.id, module.name, 't3', e.target.value)} className="w-16 p-1.5 text-center bg-transparent focus:bg-yellow-100 outline-none" /></td>)}
                                                     <td className="border"><input type="number" step="0.1" min="0" max="10" value={(grades as CourseModuleGrades).rec ?? ''} onChange={e => handleCourseGradeChange(student.id, module.name, 'rec', e.target.value)} className="w-16 p-1.5 text-center bg-transparent focus:bg-yellow-100 outline-none" /></td>
                                                     <td className={`p-1.5 border font-bold ${finalAvg !== null && finalAvg < 5 ? 'text-red-600' : 'text-black'} bg-gray-200`}>{finalAvg?.toFixed(2) ?? '-'}</td>
                                                     <td className="border text-center">
-                                                        {!isSostenibilidad && (
-                                                            <button onClick={() => handleToggleConvalidation(student.id, module.name)} className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200">Convalidar</button>
-                                                        )}
+                                                        <button onClick={() => handleToggleConvalidation(student.id, module.name)} className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200">Convalidar</button>
                                                     </td>
                                                 </>
                                             )}
