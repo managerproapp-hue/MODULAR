@@ -322,7 +322,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             addToast('RA y sus criterios eliminados.', 'info');
         },
         handleSaveCriterio: (criterio: CriterioEvaluacion, parentRaId: string) => {
-            setCriterios(prev => ({...prev, [criterio.id]: criterio}));
+            // Ensure the raId is set on the criterio object before saving
+            const criterioToSave = { ...criterio, raId: parentRaId };
+            setCriterios(prev => ({ ...prev, [criterio.id]: criterioToSave }));
             setRAs(prev => {
                 const parentRA = prev[parentRaId];
                 if (parentRA && !parentRA.criteriosEvaluacion.includes(criterio.id)) {

@@ -27,7 +27,7 @@ const PreServiceIndividualTable: React.FC<{
     studentsInGroup: Student[];
     evaluationData: PreServiceDayEvaluation;
     entryExitRecordsForWeek: Record<string, EntryExitRecord[]>;
-    onUpdate: (studentId: string, field: string, value: any, behaviorItemId?: string) => void;
+    onUpdate: (studentId: string, field: keyof PreServiceIndividualEvaluation, value: any, behaviorItemId?: string) => void;
     isLocked: boolean;
 }> = ({ studentsInGroup, evaluationData, entryExitRecordsForWeek, onUpdate, isLocked }) => {
     return (
@@ -373,16 +373,29 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
         }
     };
 
-    const handlePreServiceIndividualUpdate = (date: string, studentId: string, field: string, value: any, behaviorItemId?: string) => {
+    // FIX: Changed 'field' from string to a key of PreServiceIndividualEvaluation and used a switch statement for type-safe assignment.
+    const handlePreServiceIndividualUpdate = (date: string, studentId: string, field: keyof PreServiceIndividualEvaluation, value: any, behaviorItemId?: string) => {
         deepCloneAndUpdate(draft => {
-            if (draft.preService[date]?.individualEvaluations[studentId]) {
+            const individualEval = draft.preService[date]?.individualEvaluations[studentId];
+            if (individualEval) {
                 if (field === 'behaviorScores' && behaviorItemId) {
-                    if (!draft.preService[date].individualEvaluations[studentId].behaviorScores) {
-                        draft.preService[date].individualEvaluations[studentId].behaviorScores = {};
+                    if (!individualEval.behaviorScores) {
+                        individualEval.behaviorScores = {};
                     }
-                    draft.preService[date].individualEvaluations[studentId].behaviorScores[behaviorItemId] = value;
+                    individualEval.behaviorScores[behaviorItemId] = value;
                 } else {
-                    (draft.preService[date].individualEvaluations[studentId] as any)[field] = value;
+                    switch (field) {
+                        case 'attendance':
+                        case 'hasFichas':
+                        case 'hasUniforme':
+                        case 'hasMaterial':
+                            individualEval[field] = value as boolean;
+                            break;
+                        case 'observations':
+                            individualEval[field] = value as string;
+                            break;
+                        // 'behaviorScores' is handled in the if branch above
+                    }
                 }
             }
         });
