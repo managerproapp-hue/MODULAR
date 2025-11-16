@@ -373,7 +373,7 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
         }
     };
 
-    // FIX: Replaced if/else if with a switch statement for better type safety and to resolve indexed access error.
+    // FIX: Replaced an unsafe if/else if chain with a type-safe switch statement to correctly handle updates for different fields of PreServiceIndividualEvaluation and resolve a potential type error.
     const handlePreServiceIndividualUpdate = (date: string, studentId: string, field: keyof PreServiceIndividualEvaluation, value: any, behaviorItemId?: string) => {
         deepCloneAndUpdate(draft => {
             const preServiceDay = draft.preService[date];
