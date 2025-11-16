@@ -1,49 +1,74 @@
 import { ResultadoAprendizaje } from '../types';
 
 export const resultadosAprendizaje: Record<string, ResultadoAprendizaje> = {
-  cocina_basica: {
-    id: 'cocina_basica',
-    nombre: 'Cocina Básica',
-    descripcion: 'Desarrolla habilidades básicas de cocina y manipulación de alimentos',
-    ponderacion: 40,
-    competencias: [
-      'Aplicar técnicas básicas de cocina',
-      'Manejar utensilios y equipos de cocina',
-      'Mantener principios de higiene alimentaria',
-      'Trabajar en equipo en cocina'
+  "ra_1762979026850": {
+    "id": "ra_1762979026850",
+    "nombre": "R.A.1 - Organiza los procesos productivos y de servicio en cocina analizando información oral o escrita.",
+    "descripcion": "",
+    "competencias": [],
+    "criteriosEvaluacion": [
+      "crit_1762979067917",
+      "crit_1762979106781",
+      "crit_1762979121588",
+      "crit_1762979136775",
+      "crit_1762979148959",
+      "crit_1762979159047",
+      "crit_1762979173191",
+      "crit_1762979185962"
     ],
-    criteriosEvaluacion: [
-      'cocina_001', 'cocina_002', 'cocina_003', 'cocina_004', 'cocina_005'
-    ]
+    "ponderacion": 20
   },
-  cocina_mediterranea: {
-    id: 'cocina_mediterranea',
-    nombre: 'Cocina Mediterránea',
-    descripcion: 'Domina los fundamentos de la cocina mediterránea tradicional',
-    ponderacion: 40,
-    competencias: [
-      'Preparar platos típicos mediterráneos',
-      'Conocer ingredientes y productos locales',
-      'Aplicar técnicas de cocina saludable',
-      'Gestionar mise en place mediterráneo'
+  "ra_1762979193994": {
+    "id": "ra_1762979193994",
+    "nombre": "R.A.2 - Elabora productos culinarios establecidos, seleccionando y aplicando técnicas tradicionales y avanzadas.",
+    "descripcion": "",
+    "competencias": [],
+    "criteriosEvaluacion": [
+      "crit_1762979210978",
+      "crit_1762979228178",
+      "crit_1762979240209",
+      "crit_1762979249564",
+      "crit_1762979260260",
+      "crit_1762979271813",
+      "crit_1762979281404",
+      "crit_1762979292532",
+      "crit_1762979309263"
     ],
-    criteriosEvaluacion: [
-      'med_001', 'med_002', 'med_003', 'med_004', 'med_005', 'med_006'
-    ]
+    "ponderacion": 35
   },
-  panaderia_pasteleria: {
-    id: 'panaderia_pasteleria',
-    nombre: 'Panadería y Pastelería',
-    descripcion: 'Especialización en productos de panadería y repostería',
-    ponderacion: 20,
-    competencias: [
-      'Elaborar masas y panes artesanales',
-      'Preparar postres y repostería fina',
-      'Controlar procesos de fermentación',
-      'Aplicar técnicas de decoración'
+  "ra_1762979328991": {
+    "id": "ra_1762979328991",
+    "nombre": "R.A.3 - Elabora productos culinarios a partir de un conjunto de materias primas evaluando las distintas alternativas.                                                                (CRITICO)",
+    "descripcion": "",
+    "competencias": [],
+    "criteriosEvaluacion": [
+      "crit_1762979349983",
+      "crit_1762979359471",
+      "crit_1762979367975",
+      "crit_1762979378193",
+      "crit_1762979387081",
+      "crit_1762979395594",
+      "crit_1762979404873",
+      "crit_1762979414730",
+      "crit_1762979426065",
+      "crit_1762979438899",
+      "crit_1762979480268"
     ],
-    criteriosEvaluacion: [
-      'pan_001', 'pan_002', 'pan_003', 'pan_004', 'pan_005', 'pan_006'
-    ]
+    "ponderacion": 35
+  },
+  "ra_1762979493735": {
+    "id": "ra_1762979493735",
+    "nombre": "R.A.4 - Elabora platos para personas con necesidades alimenticias específicas analizando las características propias de cada situación.",
+    "descripcion": "",
+    "competencias": [],
+    "criteriosEvaluacion": [
+      "crit_1762979508022",
+      "crit_1762979530934",
+      "crit_1762979539759",
+      "crit_1762979549166",
+      "crit_1762979558553",
+      "crit_1762979570153"
+    ],
+    "ponderacion": 10
   }
 };

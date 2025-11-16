@@ -310,6 +310,8 @@ export interface CriterioEvaluacion {
   asociaciones: AsociacionCriterio[];
   raId?: string;
   raNombre?: string;
+  // FIX: Added optional 'instrumentos' property to fix errors in data/criterios-data.ts
+  instrumentos?: string[];
 }
 
 export interface EvaluationActivity {

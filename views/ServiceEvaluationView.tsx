@@ -495,7 +495,12 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
                              <tfoot>
                                  <tr className="bg-gray-100 font-bold">
                                      <td className="p-2 border text-left">TOTAL</td>
-                                     {evaluationUnits.map(unit => { const scores = evaluation.serviceDay.groupScores[unit.id]?.scores.filter(s => s !== null) as number[] || []; const total = scores.reduce((a, b) => a + b, 0); return <td key={unit.id} className="p-2 border text-center">{total.toFixed(2)} / {GROUP_EVALUATION_ITEMS.reduce((acc, item) => acc + item.maxScore, 0).toFixed(2)}</td>})}
+                                     {evaluationUnits.map(unit => { 
+                                         // FIX: Added optional chaining to prevent runtime error if scores array doesn't exist.
+                                         const scores = (evaluation.serviceDay.groupScores[unit.id]?.scores?.filter(s => s !== null) as number[]) ?? []; 
+                                         const total = scores.reduce((a, b) => a + b, 0); 
+                                         return <td key={unit.id} className="p-2 border text-center">{total.toFixed(2)} / {GROUP_EVALUATION_ITEMS.reduce((acc, item) => acc + item.maxScore, 0).toFixed(2)}</td>
+                                     })}
                                  </tr>
                                  <tr>
                                     <td className="p-2 border text-left font-medium">Observaciones</td>
