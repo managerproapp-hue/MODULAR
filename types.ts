@@ -1,3 +1,4 @@
+
 export type GradeValue = number | null;
 
 export interface Student {
@@ -177,6 +178,12 @@ export interface AcademicGrades {
     [studentId: string]: StudentAcademicGrades;
 }
 
+// New type for instrument-based grades (Optativa, Proyecto, etc.)
+export interface InstrumentGrades {
+    [studentId: string]: {
+        [activityId: string]: number | null;
+    };
+}
 
 export interface CourseModuleGrades {
     t1: GradeValue;

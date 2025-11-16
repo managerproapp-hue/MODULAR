@@ -121,9 +121,10 @@ const FichaAlumno: React.FC<FichaAlumnoProps> = ({ student, onBack, onUpdatePhot
     students,
     teacherData, 
     instituteData,
-    pcResultadosAprendizaje: resultadosAprendizaje, 
-    pcCriteriosEvaluacion: criteriosEvaluacion, 
+    pcResultadosAprendizaje, 
+    pcCriteriosEvaluacion, 
     academicGrades: allAcademicGrades,
+    instrumentGrades,
     calculatedStudentGrades: allCalculatedGrades,
     courseGrades: allCourseGrades,
     setCourseGrades,
@@ -138,6 +139,8 @@ const FichaAlumno: React.FC<FichaAlumnoProps> = ({ student, onBack, onUpdatePhot
   const [editedStudent, setEditedStudent] = useState<Student>(student);
   const [activeTab, setActiveTab] = useState('general');
   const [expandedRAs, setExpandedRAs] = useState<Set<string>>(new Set());
+  const [activeModuleForRA, setActiveModuleForRA] = useState<'pc' | 'optativa' | 'proyecto'>('pc');
+
 
   const fullName = `${student.apellido1} ${student.apellido2}, ${student.nombre}`.trim();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -505,9 +508,9 @@ const FichaAlumno: React.FC<FichaAlumnoProps> = ({ student, onBack, onUpdatePhot
 
         {activeTab === 'ra' && (
              <div className="space-y-4">
-                {Object.values(resultadosAprendizaje).map((ra: ResultadoAprendizaje) => {
+                {pcResultadosAprendizaje && Object.values(pcResultadosAprendizaje).map((ra: ResultadoAprendizaje) => {
                     const isExpanded = expandedRAs.has(ra.id);
-                    const { grade, ponderacionTotal } = calculateRAGrade(ra, student.id, criteriosEvaluacion, allAcademicGrades, allCalculatedGrades);
+                    const { grade, ponderacionTotal } = calculateRAGrade(ra, student.id, 'pc', pcCriteriosEvaluacion, allAcademicGrades, instrumentGrades, allCalculatedGrades);
                     return (
                         <div key={ra.id} className="bg-white shadow-sm rounded-lg overflow-hidden">
                             <div className="flex items-center p-4 cursor-pointer hover:bg-gray-50" onClick={() => setExpandedRAs(p => p.has(ra.id) ? (p.delete(ra.id), new Set(p)) : new Set(p.add(ra.id)))}>
@@ -515,7 +518,7 @@ const FichaAlumno: React.FC<FichaAlumnoProps> = ({ student, onBack, onUpdatePhot
                                 <div className="flex-1 ml-2"><h4 className="font-bold text-gray-800">{ra.nombre}</h4><p className="text-xs text-gray-500">Ponderación evaluada: {ponderacionTotal}%</p></div>
                                 <div className="text-right"><p className="text-sm font-medium text-gray-500">Nota RA</p><p className={`text-2xl font-bold ${grade === null ? 'text-gray-400' : grade < 5 ? 'text-red-600' : 'text-green-600'}`}>{grade?.toFixed(2) ?? 'N/E'}</p></div>
                             </div>
-                            {isExpanded && (<div className="border-t bg-gray-50 p-4"><h5 className="text-sm font-semibold text-gray-600 mb-2">Desglose de Criterios</h5><div className="space-y-2">{ra.criteriosEvaluacion.map(cId => {const c = criteriosEvaluacion[cId]; if(!c) return null; const cGrade = calculateCriterioGrade(c,student.id,allAcademicGrades,allCalculatedGrades); return (<div key={c.id} className="flex justify-between p-2 bg-white rounded-md border"><div><p className="text-sm text-gray-800">{c.descripcion}</p></div><div className="text-right flex-shrink-0 ml-4"><p className="text-xs text-gray-500">Pond: {c.ponderacion}%</p><p className={`font-bold ${cGrade === null ? 'text-gray-400' : cGrade < 5 ? 'text-red-500' : 'text-gray-800'}`}>{cGrade?.toFixed(2) ?? 'N/E'}</p></div></div>);})}</div></div>)}
+                            {isExpanded && (<div className="border-t bg-gray-50 p-4"><h5 className="text-sm font-semibold text-gray-600 mb-2">Desglose de Criterios</h5><div className="space-y-2">{ra.criteriosEvaluacion.map(cId => {const c = pcCriteriosEvaluacion[cId]; if(!c) return null; const cGrade = calculateCriterioGrade(c,student.id, 'pc', allAcademicGrades, instrumentGrades, allCalculatedGrades); return (<div key={c.id} className="flex justify-between p-2 bg-white rounded-md border"><div><p className="text-sm text-gray-800">{c.descripcion}</p></div><div className="text-right flex-shrink-0 ml-4"><p className="text-xs text-gray-500">Pond: {c.ponderacion}%</p><p className={`font-bold ${cGrade === null ? 'text-gray-400' : cGrade < 5 ? 'text-red-500' : 'text-gray-800'}`}>{cGrade?.toFixed(2) ?? 'N/E'}</p></div></div>);})}</div></div>)}
                         </div>
                     )
                 })}

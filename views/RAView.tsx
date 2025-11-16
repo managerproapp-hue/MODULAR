@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { ResultadoAprendizaje, CriterioEvaluacion, AsociacionCriterio, UnidadTrabajo, InstrumentoEvaluacion, EvaluationActivity } from '../types';
@@ -253,6 +254,7 @@ const RAView: React.FC<RAViewProps> = ({ module }) => {
     const { 
         students,
         academicGrades,
+        instrumentGrades,
         calculatedStudentGrades,
         teacherData,
         instituteData,
@@ -337,15 +339,15 @@ const RAView: React.FC<RAViewProps> = ({ module }) => {
         if (students.length === 0) return { raAverages, criterioAverages };
         
         for (const ra of Object.values(resultadosAprendizaje) as ResultadoAprendizaje[]) {
-            const grades = students.map(s => calculateRAGrade(ra, s.id, criteriosEvaluacion, academicGrades, calculatedStudentGrades).grade).filter(g => g !== null) as number[];
+            const grades = students.map(s => calculateRAGrade(ra, s.id, module, criteriosEvaluacion, academicGrades, instrumentGrades, calculatedStudentGrades).grade).filter(g => g !== null) as number[];
             if (grades.length > 0) raAverages.set(ra.id, grades.reduce((s, g) => s + g, 0) / grades.length);
         }
         for (const crit of Object.values(criteriosEvaluacion) as CriterioEvaluacion[]) {
-            const grades = students.map(s => calculateCriterioGrade(crit, s.id, academicGrades, calculatedStudentGrades)).filter(g => g !== null) as number[];
+            const grades = students.map(s => calculateCriterioGrade(crit, s.id, module, academicGrades, instrumentGrades, calculatedStudentGrades)).filter(g => g !== null) as number[];
             if (grades.length > 0) criterioAverages.set(crit.id, grades.reduce((s, g) => s + g, 0) / grades.length);
         }
         return { raAverages, criterioAverages };
-    }, [students, resultadosAprendizaje, criteriosEvaluacion, academicGrades, calculatedStudentGrades]);
+    }, [students, resultadosAprendizaje, criteriosEvaluacion, academicGrades, instrumentGrades, calculatedStudentGrades, module]);
 
     const activityInfoMap = useMemo(() => {
         const map = new Map<string, { instrumentName: string, activityName: string, trimester: 't1' | 't2' }>();

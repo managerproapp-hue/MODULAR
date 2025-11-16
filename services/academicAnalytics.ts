@@ -1,8 +1,10 @@
+
 import { 
     CriterioEvaluacion,
     AcademicGrades, 
     StudentCalculatedGrades,
-    ResultadoAprendizaje
+    ResultadoAprendizaje,
+    InstrumentGrades
 } from '../types';
 
 /**
@@ -12,13 +14,21 @@ import {
 const getGradeForActivity = (
     activityId: string,
     studentId: string,
+    module: 'pc' | 'optativa' | 'proyecto',
     academicGrades: AcademicGrades,
+    instrumentGrades: InstrumentGrades,
     calculatedGrades: Record<string, StudentCalculatedGrades>
 ): number | null => {
+
+    if (module === 'optativa' || module === 'proyecto') {
+        return instrumentGrades[studentId]?.[activityId] ?? null;
+    }
+
+    // --- PC Module Logic ---
     const studentAcademic = academicGrades[studentId];
     const studentCalculated = calculatedGrades[studentId];
 
-    // Mapping of activity IDs to their grade data sources
+    // Mapping of activity IDs to their grade data sources for PC Module
     const activityGradeMap: Record<string, () => number | null> = {
         'act-1': () => studentAcademic?.t1?.manualGrades?.examen1 ?? null,
         'act-2': () => studentAcademic?.t1?.manualGrades?.examen2 ?? null,
@@ -28,7 +38,6 @@ const getGradeForActivity = (
         'act-13': () => studentCalculated?.serviceAverages?.t2 ?? null,
         'act-7': () => studentCalculated?.practicalExams?.t1 ?? null,
         'act-14': () => studentCalculated?.practicalExams?.t2 ?? null,
-        // Other activities (Fichas, Trabajos, P. Diaria) do not have a data source defined yet
     };
 
     const gradeFn = activityGradeMap[activityId];
@@ -41,7 +50,9 @@ const getGradeForActivity = (
 export const calculateCriterioGrade = (
     criterio: CriterioEvaluacion,
     studentId: string,
+    module: 'pc' | 'optativa' | 'proyecto',
     academicGrades: AcademicGrades,
+    instrumentGrades: InstrumentGrades,
     calculatedGrades: Record<string, StudentCalculatedGrades>
 ): number | null => {
     if (!criterio.asociaciones || criterio.asociaciones.length === 0) {
@@ -54,7 +65,7 @@ export const calculateCriterioGrade = (
     }
 
     const grades = associatedActivities
-        .map(actId => getGradeForActivity(actId, studentId, academicGrades, calculatedGrades))
+        .map(actId => getGradeForActivity(actId, studentId, module, academicGrades, instrumentGrades, calculatedGrades))
         .filter(g => g !== null) as number[];
 
     if (grades.length === 0) {
@@ -72,8 +83,10 @@ export const calculateCriterioGrade = (
 export const calculateRAGrade = (
     ra: ResultadoAprendizaje,
     studentId: string,
+    module: 'pc' | 'optativa' | 'proyecto',
     criteriosEvaluacion: Record<string, CriterioEvaluacion>,
     academicGrades: AcademicGrades,
+    instrumentGrades: InstrumentGrades,
     calculatedGrades: Record<string, StudentCalculatedGrades>
 ): { grade: number | null, ponderacionTotal: number } => {
     let weightedSum = 0;
@@ -82,7 +95,7 @@ export const calculateRAGrade = (
     ra.criteriosEvaluacion.forEach(criterioId => {
         const criterio = criteriosEvaluacion[criterioId];
         if (criterio) {
-            const criterioGrade = calculateCriterioGrade(criterio, studentId, academicGrades, calculatedGrades);
+            const criterioGrade = calculateCriterioGrade(criterio, studentId, module, academicGrades, instrumentGrades, calculatedGrades);
             
             if (criterioGrade !== null) {
                 // The criterion's grade is already out of 10, so we multiply by its percentage weight

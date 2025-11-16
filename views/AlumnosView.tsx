@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Student, ResultadoAprendizaje } from '../types';
 import StudentTable from '../components/StudentTable';
@@ -13,7 +14,9 @@ const AlumnosView: React.FC = () => {
       students, setStudents,
       pcResultadosAprendizaje: resultadosAprendizaje,
       pcCriteriosEvaluacion: criteriosEvaluacion,
-      academicGrades, calculatedStudentGrades,
+      academicGrades,
+      instrumentGrades,
+      calculatedStudentGrades,
       handleFileUpload: contextHandleFileUpload, 
       addToast, handleUpdateStudent
   } = useAppContext();
@@ -34,16 +37,18 @@ const AlumnosView: React.FC = () => {
         const raProgress = (Object.values(resultadosAprendizaje) as ResultadoAprendizaje[]).map(ra => {
             const { grade } = calculateRAGrade(
                 ra, 
-                student.id, 
+                student.id,
+                'pc', // Assuming AlumnosView dashboard only shows PC progress
                 criteriosEvaluacion,
                 academicGrades,
+                instrumentGrades,
                 calculatedStudentGrades
             );
             return { id: ra.id, name: ra.nombre, grade };
         }).sort((a,b) => a.name.localeCompare(b.name));
         return { ...student, raProgress };
     });
-  }, [students, resultadosAprendizaje, criteriosEvaluacion, academicGrades, calculatedStudentGrades]);
+  }, [students, resultadosAprendizaje, criteriosEvaluacion, academicGrades, instrumentGrades, calculatedStudentGrades]);
 
 
   const filteredStudents = useMemo(() => {

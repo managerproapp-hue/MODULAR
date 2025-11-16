@@ -373,7 +373,6 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
         }
     };
 
-    // FIX: Changed 'field' from string to a key of PreServiceIndividualEvaluation and used a switch statement for type-safe assignment.
     const handlePreServiceIndividualUpdate = (date: string, studentId: string, field: keyof PreServiceIndividualEvaluation, value: any, behaviorItemId?: string) => {
         deepCloneAndUpdate(draft => {
             const individualEval = draft.preService[date]?.individualEvaluations[studentId];
@@ -384,17 +383,27 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
                     }
                     individualEval.behaviorScores[behaviorItemId] = value;
                 } else {
+                    // FIX: Replaced generic indexed access with a type-safe switch to resolve a TypeScript error.
+                    // This ensures each property is assigned a value of the correct type.
                     switch (field) {
                         case 'attendance':
+                            individualEval.attendance = value as boolean;
+                            break;
                         case 'hasFichas':
+                            individualEval.hasFichas = value as boolean;
+                            break;
                         case 'hasUniforme':
+                            individualEval.hasUniforme = value as boolean;
+                            break;
                         case 'hasMaterial':
-                            individualEval[field] = value as boolean;
+                            individualEval.hasMaterial = value as boolean;
                             break;
                         case 'observations':
-                            individualEval[field] = value as string;
+                            individualEval.observations = value as string;
                             break;
-                        // 'behaviorScores' is handled in the if branch above
+                        case 'behaviorScores':
+                            // This case is handled above, but included for exhaustiveness check
+                            break;
                     }
                 }
             }
@@ -511,7 +520,6 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
                                  <tr className="bg-gray-100 font-bold">
                                      <td className="p-2 border text-left">TOTAL</td>
                                      {evaluationUnits.map(unit => { 
-                                         // FIX: Added optional chaining to prevent runtime error if scores array doesn't exist.
                                          const scores = (evaluation.serviceDay.groupScores[unit.id]?.scores?.filter(s => s !== null) as number[]) ?? []; 
                                          const total = scores.reduce((a, b) => a + b, 0); 
                                          return <td key={unit.id} className="p-2 border text-center">{total.toFixed(2)} / {GROUP_EVALUATION_ITEMS.reduce((acc, item) => acc + item.maxScore, 0).toFixed(2)}</td>
