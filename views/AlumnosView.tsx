@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo } from 'react';
 import { Student, ResultadoAprendizaje } from '../types';
 import StudentTable from '../components/StudentTable';
@@ -9,6 +7,7 @@ import AddStudentModal from '../components/AddStudentModal';
 import { SearchIcon, UserPlusIcon } from '../components/icons';
 import { useAppContext } from '../context/AppContext';
 import { calculateRAGrade } from '../services/academicAnalytics';
+import { calculateStudentPeriodAverages } from '../services/gradeCalculator';
 
 const AlumnosView: React.FC = () => {
   const { 
@@ -35,6 +34,7 @@ const AlumnosView: React.FC = () => {
 
   const studentsWithRAProgress = useMemo(() => {
     return students.map(student => {
+        // RA Progress Calculation
         const raProgress = (Object.values(resultadosAprendizaje) as ResultadoAprendizaje[]).map(ra => {
             const { grade } = calculateRAGrade(
                 ra, 
@@ -47,7 +47,19 @@ const AlumnosView: React.FC = () => {
             );
             return { id: ra.id, name: ra.nombre, grade };
         }).sort((a,b) => a.name.localeCompare(b.name));
-        return { ...student, raProgress };
+
+        // Course Average Calculation (Academic Grade)
+        const periodAverages = calculateStudentPeriodAverages(
+            academicGrades[student.id], 
+            calculatedStudentGrades[student.id]
+        );
+        
+        const validPeriodGrades = [periodAverages.t1, periodAverages.t2].filter(g => g !== null) as number[];
+        const courseAverage = validPeriodGrades.length > 0 
+            ? validPeriodGrades.reduce((a, b) => a + b, 0) / validPeriodGrades.length 
+            : null;
+
+        return { ...student, raProgress, courseAverage };
     });
   }, [students, resultadosAprendizaje, criteriosEvaluacion, academicGrades, instrumentGrades, calculatedStudentGrades]);
 

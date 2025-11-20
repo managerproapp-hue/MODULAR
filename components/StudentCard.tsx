@@ -2,20 +2,30 @@ import React from 'react';
 import { Student } from '../types';
 
 interface StudentCardProps {
-  student: Student & { raProgress: { id: string, name: string, grade: number | null }[] };
+  student: Student & { 
+      raProgress: { id: string, name: string, grade: number | null }[];
+      courseAverage?: number | null;
+  };
   onViewStudent: (student: Student) => void;
 }
 
 const StudentCard: React.FC<StudentCardProps> = ({ student, onViewStudent }) => {
-  const { raProgress, ...studentData } = student;
+  const { raProgress, courseAverage, ...studentData } = student;
   const fullName = `${studentData.nombre} ${studentData.apellido1} ${studentData.apellido2}`.trim();
 
   return (
     <div 
-      className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden transform hover:-translate-y-1 hover:shadow-xl transition-all duration-300 ease-in-out cursor-pointer flex flex-col"
+      className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden transform hover:-translate-y-1 hover:shadow-xl transition-all duration-300 ease-in-out cursor-pointer flex flex-col relative"
       onClick={() => onViewStudent(studentData)}
     >
-      <img className="w-full h-28 object-cover object-center" src={studentData.fotoUrl} alt={`Photo of ${fullName}`} />
+      <div className="relative">
+        <img className="w-full h-28 object-cover object-center" src={studentData.fotoUrl} alt={`Photo of ${fullName}`} />
+        {courseAverage !== undefined && courseAverage !== null && (
+            <div className={`absolute top-2 right-2 px-2 py-1 rounded-md text-xs font-bold shadow-md border ${courseAverage >= 5 ? 'bg-green-100 text-green-800 border-green-300' : 'bg-red-100 text-red-800 border-red-300'}`}>
+                {courseAverage.toFixed(2)}
+            </div>
+        )}
+      </div>
       <div className="p-4">
         <h3 className="text-base font-bold text-gray-800 dark:text-white truncate" title={fullName}>{fullName}</h3>
         <p className="text-sm text-gray-600 dark:text-gray-400">{`Grupo: ${studentData.grupo} - ${studentData.subgrupo}`}</p>

@@ -3,7 +3,10 @@ import { Student } from '../types';
 import StudentCard from './StudentCard';
 
 interface StudentListProps {
-  students: (Student & { raProgress: { id: string, name: string, grade: number | null }[] })[];
+  students: (Student & { 
+      raProgress: { id: string, name: string, grade: number | null }[];
+      courseAverage?: number | null;
+  })[];
   onViewStudent: (student: Student) => void;
 }
 

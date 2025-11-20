@@ -51,16 +51,12 @@ const PreServiceIndividualTable: React.FC<{
                     </tr>
                 </thead>
                 <tbody>
-                    {/* FIX: Correctly typed the iterated fields to avoid type assertion on access. */}
                     {(['attendance', 'hasFichas', 'hasUniforme', 'hasMaterial'] as const).map(field => (
                         <tr key={field}>
                             <td className="p-2 border font-medium capitalize text-left">{field === 'attendance' ? 'Asistencia' : field.replace('has', '')}</td>
                             {studentsInGroup.map(s => {
-                                // Explicitly cast individualEvaluations to Record<string, PreServiceIndividualEvaluation>
-                                // to avoid "Type 'unknown' cannot be used as an index type" error
                                 const evaluations = evaluationData?.individualEvaluations as Record<string, PreServiceIndividualEvaluation> || {};
                                 const individualEval = evaluations[s.id];
-                                // With `as const` on the array, `field` is correctly typed, so we can directly access the property.
                                 const isChecked = individualEval?.[field] ?? (field === 'attendance');
                                 return (
                                 <td key={s.id} className="p-2 border text-center">
@@ -445,10 +441,10 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
                         individualEval.behaviorScores = {};
                     }
                     // Explicit cast for behaviorScores indexing
-                    (individualEval.behaviorScores as Record<string, number | null>)[behaviorItemId] = value;
+                    (individualEval.behaviorScores as Record<string, number | null>)[behaviorItemId as string] = value;
                 }
             } else {
-                 (individualEval as any)[field] = value;
+                 (individualEval as any)[field as string] = value;
             }
         });
     };

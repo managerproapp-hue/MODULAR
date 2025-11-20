@@ -2,7 +2,10 @@ import React from 'react';
 import { Student } from '../types';
 
 interface StudentTableProps {
-  students: (Student & { raProgress: { id: string, name: string, grade: number | null }[] })[];
+  students: (Student & { 
+      raProgress: { id: string, name: string, grade: number | null }[];
+      courseAverage?: number | null;
+  })[];
   onViewStudent: (student: Student) => void;
 }
 
@@ -16,16 +19,21 @@ const StudentTable: React.FC<StudentTableProps> = ({ students, onViewStudent }) 
               <th scope="col" className="px-4 py-3">Nombre Completo</th>
               <th scope="col" className="px-4 py-3">NRE</th>
               <th scope="col" className="px-4 py-3">Grupo</th>
+              <th scope="col" className="px-4 py-3 text-center">Nota Media</th>
               <th scope="col" className="px-4 py-3">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {students.map((student, index) => {
-              const { raProgress, ...studentData } = student;
+              const { raProgress, courseAverage, ...studentData } = student;
               const fullName = `${studentData.apellido1} ${studentData.apellido2}, ${studentData.nombre}`.trim();
               const isEven = index % 2 === 0;
               const trBg = isEven ? 'bg-white' : 'bg-gray-50';
               const tdBg = isEven ? 'bg-gray-50' : 'bg-gray-100';
+              
+              const avgColor = courseAverage === null || courseAverage === undefined ? 'text-gray-400' : courseAverage < 5 ? 'text-red-600 font-bold' : 'text-green-600 font-bold';
+              const avgText = courseAverage !== null && courseAverage !== undefined ? courseAverage.toFixed(2) : '-';
+
               return (
                 <React.Fragment key={student.id}>
                   <tr className={`${trBg} border-t hover:bg-blue-50`}>
@@ -41,12 +49,13 @@ const StudentTable: React.FC<StudentTableProps> = ({ students, onViewStudent }) 
                     </td>
                     <td className="px-4 py-3">{studentData.nre}</td>
                     <td className="px-4 py-3">{studentData.grupo}</td>
+                    <td className={`px-4 py-3 text-center ${avgColor}`}>{avgText}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <button onClick={() => onViewStudent(studentData)} className="font-medium text-blue-600 hover:underline">Ver Ficha</button>
                     </td>
                   </tr>
                   <tr className={`${trBg} border-b`}>
-                    <td colSpan={4} className={`p-4 ${tdBg}`}>
+                    <td colSpan={5} className={`p-4 ${tdBg}`}>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-6 gap-y-4">
                             {raProgress.map(ra => {
                                 const percentage = ra.grade !== null ? (ra.grade / 10) * 100 : 0;
