@@ -422,17 +422,16 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
 
     const handlePreServiceIndividualUpdate = (date: string, studentId: string, field: keyof PreServiceIndividualEvaluation, value: any, behaviorItemId?: string) => {
         deepCloneAndUpdate(draft => {
-            // Cast preService to Record to avoid "Type 'unknown' cannot be used as an index type" error
-            const preServiceMap = draft.preService as Record<string, PreServiceDayEvaluation>;
-            const preServiceDay = preServiceMap?.[date];
+            // Ensure preService is treated as a Record to avoid indexing errors
+            const preServiceMap = (draft.preService || {}) as Record<string, PreServiceDayEvaluation>;
+            const preServiceDay = preServiceMap[date];
             
             if (!preServiceDay) {
                 return;
             }
             
             // Explicit cast to avoid "Type 'unknown' cannot be used as an index type"
-            const evaluations = preServiceDay.individualEvaluations as Record<string, PreServiceIndividualEvaluation>;
-            if (!evaluations) return;
+            const evaluations = (preServiceDay.individualEvaluations || {}) as Record<string, PreServiceIndividualEvaluation>;
 
             const individualEval = evaluations[studentId];
 
@@ -445,7 +444,8 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
                     if (!individualEval.behaviorScores) {
                         individualEval.behaviorScores = {};
                     }
-                    individualEval.behaviorScores[behaviorItemId] = value;
+                    // Explicit cast for behaviorScores indexing
+                    (individualEval.behaviorScores as Record<string, number | null>)[behaviorItemId] = value;
                 }
             } else {
                  (individualEval as any)[field] = value;

@@ -1,3 +1,4 @@
+
 export const PRE_SERVICE_BEHAVIOR_ITEMS = [
     { id: 'respects_rules', label: 'Respeta las normas y no interrumpe.' },
     { id: 'is_kind', label: 'Es amable y trata bien a los compañeros.' },
@@ -112,20 +113,20 @@ export const ACADEMIC_EVALUATION_STRUCTURE = {
       key: "t1",
       name: "1º Trimestre",
       instruments: [
-        { name: "Examen 1", type: "manual", key: "examen1", weight: 0.25 },
-        { name: "Examen 2", type: "manual", key: "examen2", weight: 0.25 },
-        { name: "Servicios", type: "calculated", key: "servicios", weight: 0.30 },
-        { name: "Ex. Práctico", type: "calculated", key: "exPracticoT1", weight: 0.20 },
+        { name: "Examen 1", type: "manual", key: "examen1", weight: 0.10 }, // 10% del curso
+        { name: "Examen 2", type: "manual", key: "examen2", weight: 0.10 }, // 10% del curso
+        { name: "Servicios", type: "calculated", key: "servicios", weight: 0.15 }, // 15% del curso
+        { name: "Ex. Práctico", type: "calculated", key: "exPracticoT1", weight: 0.15 }, // 15% del curso
       ]
     },
     {
       key: "t2",
       name: "2º Trimestre",
       instruments: [
-        { name: "Examen 1", type: "manual", key: "examen1", weight: 0.25 },
-        { name: "Examen 2", type: "manual", key: "examen2", weight: 0.25 },
-        { name: "Servicios", type: "calculated", key: "servicios", weight: 0.30 },
-        { name: "Ex. Práctico", type: "calculated", key: "exPracticoT2", weight: 0.20 },
+        { name: "Examen 1", type: "manual", key: "examen1", weight: 0.10 }, // 10% del curso
+        { name: "Examen 2", type: "manual", key: "examen2", weight: 0.10 }, // 10% del curso
+        { name: "Servicios", type: "calculated", key: "servicios", weight: 0.15 }, // 15% del curso
+        { name: "Ex. Práctico", type: "calculated", key: "exPracticoT2", weight: 0.15 }, // 15% del curso
       ]
     },
     {
