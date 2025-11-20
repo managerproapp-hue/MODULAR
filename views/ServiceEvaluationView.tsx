@@ -1,5 +1,6 @@
+
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { Service, ServiceEvaluation, Student, PracticeGroup, EntryExitRecord, PreServiceDayEvaluation, ServiceDayIndividualScores, Agrupacion, PreServiceIndividualEvaluation } from '../types';
+import { Service, ServiceEvaluation, Student, PracticeGroup, EntryExitRecord, PreServiceDayEvaluation, ServiceDayIndividualScores, Agrupacion, PreServiceIndividualEvaluation, ServiceRole } from '../types';
 import { PRE_SERVICE_BEHAVIOR_ITEMS, BEHAVIOR_RATING_MAP, GROUP_EVALUATION_ITEMS, INDIVIDUAL_EVALUATION_ITEMS } from '../data/constants';
 import { PlusIcon, TrashIcon, ChefHatIcon } from '../components/icons';
 
@@ -11,6 +12,7 @@ interface ServiceEvaluationViewProps {
     practiceGroups: PracticeGroup[];
     entryExitRecords: EntryExitRecord[];
     isLocked: boolean;
+    serviceRoles: ServiceRole[];
 }
 
 const getWeekMonday = (date: Date): Date => {
@@ -29,14 +31,24 @@ const PreServiceIndividualTable: React.FC<{
     entryExitRecordsForWeek: Record<string, EntryExitRecord[]>;
     onUpdate: (studentId: string, field: keyof PreServiceIndividualEvaluation, value: any, behaviorItemId?: string) => void;
     isLocked: boolean;
-}> = ({ studentsInGroup, evaluationData, entryExitRecordsForWeek, onUpdate, isLocked }) => {
+    service: Service;
+    serviceRoles: ServiceRole[];
+}> = ({ studentsInGroup, evaluationData, entryExitRecordsForWeek, onUpdate, isLocked, service, serviceRoles }) => {
     return (
         <div className="overflow-x-auto">
             <table className="min-w-full text-xs border-collapse">
                 <thead className="bg-gray-100">
                     <tr>
                         <th className="p-2 border font-semibold text-gray-600 w-1/4 text-left">Criterio Individual</th>
-                        {studentsInGroup.map(s => <th key={s.id} className="p-2 border font-semibold text-gray-600 truncate">{s.apellido1} {s.nombre.charAt(0)}.</th>)}
+                        {studentsInGroup.map(s => {
+                            const roleId = service.studentRoles.find(sr => sr.studentId === s.id)?.roleId;
+                            const roleName = serviceRoles.find(r => r.id === roleId)?.name;
+                            return (
+                            <th key={s.id} className="p-2 border font-semibold text-gray-600 truncate">
+                                {roleName && <div className="text-[10px] font-normal text-blue-600 uppercase tracking-wider mb-0.5">{roleName}</div>}
+                                {s.apellido1} {s.nombre.charAt(0)}.
+                            </th>
+                        )})}
                     </tr>
                 </thead>
                 <tbody>
@@ -45,7 +57,10 @@ const PreServiceIndividualTable: React.FC<{
                         <tr key={field}>
                             <td className="p-2 border font-medium capitalize text-left">{field === 'attendance' ? 'Asistencia' : field.replace('has', '')}</td>
                             {studentsInGroup.map(s => {
-                                const individualEval = evaluationData?.individualEvaluations[s.id];
+                                // Explicitly cast individualEvaluations to Record<string, PreServiceIndividualEvaluation>
+                                // to avoid "Type 'unknown' cannot be used as an index type" error
+                                const evaluations = evaluationData?.individualEvaluations as Record<string, PreServiceIndividualEvaluation> || {};
+                                const individualEval = evaluations[s.id];
                                 // With `as const` on the array, `field` is correctly typed, so we can directly access the property.
                                 const isChecked = individualEval?.[field] ?? (field === 'attendance');
                                 return (
@@ -60,7 +75,8 @@ const PreServiceIndividualTable: React.FC<{
                         <tr key={item.id}>
                             <td className="p-2 border text-left">{item.label}</td>
                             {studentsInGroup.map(s => {
-                                const indEval = evaluationData?.individualEvaluations[s.id];
+                                const evaluations = evaluationData?.individualEvaluations as Record<string, PreServiceIndividualEvaluation> || {};
+                                const indEval = evaluations[s.id];
                                 const isAbsent = !(indEval?.attendance ?? true);
                                 const currentScore = indEval?.behaviorScores[item.id];
                                 return (
@@ -100,7 +116,8 @@ const PreServiceIndividualTable: React.FC<{
                      <tr>
                         <td className="p-2 border text-left font-medium">Comentarios Adicionales</td>
                          {studentsInGroup.map(s => {
-                            const indEval = evaluationData?.individualEvaluations[s.id];
+                            const evaluations = evaluationData?.individualEvaluations as Record<string, PreServiceIndividualEvaluation> || {};
+                            const indEval = evaluations[s.id];
                             const isAbsent = !(indEval?.attendance ?? true);
                             return (
                                 <td key={s.id} className="p-1 border align-top">
@@ -127,7 +144,9 @@ const ServiceDayIndividualEvaluationTable: React.FC<{
     handleNumericInputChange: (e: React.ChangeEvent<HTMLInputElement>, max: number, updateFn: (value: number | null) => void) => void;
     entryExitRecordsForWeek: Record<string, EntryExitRecord[]>;
     isLocked: boolean;
-}> = ({ studentsInGroup, evaluationData, onUpdate, handleNumericInputChange, entryExitRecordsForWeek, isLocked }) => {
+    service: Service;
+    serviceRoles: ServiceRole[];
+}> = ({ studentsInGroup, evaluationData, onUpdate, handleNumericInputChange, entryExitRecordsForWeek, isLocked, service, serviceRoles }) => {
     
     const totals = useMemo(() => {
         const studentTotals: { [studentId: string]: number } = {};
@@ -144,7 +163,15 @@ const ServiceDayIndividualEvaluationTable: React.FC<{
                 <thead className="bg-gray-100">
                     <tr>
                         <th className="p-2 border font-semibold text-gray-600 w-1/4 text-left">Criterio</th>
-                        {studentsInGroup.map(s => <th key={s.id} className="p-2 border font-semibold text-gray-600 truncate">{s.apellido1} {s.nombre.charAt(0)}.</th>)}
+                        {studentsInGroup.map(s => {
+                            const roleId = service.studentRoles.find(sr => sr.studentId === s.id)?.roleId;
+                            const roleName = serviceRoles.find(r => r.id === roleId)?.name;
+                            return (
+                            <th key={s.id} className="p-2 border font-semibold text-gray-600 truncate">
+                                {roleName && <div className="text-[10px] font-normal text-blue-600 uppercase tracking-wider mb-0.5">{roleName}</div>}
+                                {s.apellido1} {s.nombre.charAt(0)}.
+                            </th>
+                        )})}
                     </tr>
                 </thead>
                 <tbody>
@@ -264,7 +291,7 @@ const ServiceDayIndividualEvaluationTable: React.FC<{
 };
 
 
-const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, evaluation, onEvaluationChange, students, practiceGroups, entryExitRecords, isLocked }) => {
+const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, evaluation, onEvaluationChange, students, practiceGroups, entryExitRecords, isLocked, serviceRoles }) => {
     const [activeTab, setActiveTab] = useState<'pre-service' | 'service-day'>('pre-service');
     const [activePreServiceDate, setActivePreServiceDate] = useState<string | null>(null);
 
@@ -380,10 +407,9 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
             if (!preServiceDay) {
                 return;
             }
-            // Explicitly cast individualEvaluations to Record<string, PreServiceIndividualEvaluation>
-            // to avoid "Type 'unknown' cannot be used as an index type" error
-            const evaluations = preServiceDay.individualEvaluations as Record<string, PreServiceIndividualEvaluation>;
-            const individualEval = evaluations[studentId];
+            // Explicitly cast individualEvaluations to any to avoid "Type 'unknown' cannot be used as an index type" error
+            const evaluations = preServiceDay.individualEvaluations as any;
+            const individualEval = evaluations[studentId] as PreServiceIndividualEvaluation;
 
             if (!individualEval) {
                 return;
@@ -462,7 +488,7 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
     const renderAssignedDishes = (unitId: string) => {
         if (service.type === 'agrupacion') return (
             <div className="mb-3 text-sm text-purple-600 bg-purple-50 px-3 py-1 rounded-full inline-block border border-purple-200">
-                <span className="font-bold">Elaboración Asignada:</span> {evaluationUnits.find(u => u.id === unitId)?.name}
+                <span className="font-bold">Elaboración Asignada</span>
             </div>
         );
 
@@ -487,7 +513,7 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
     
     // Helper for simple string display in table headers
     const getDishesStringForUnit = (unitId: string) => {
-        if (service.type === 'agrupacion') return "Elaboración Única";
+        if (service.type === 'agrupacion') return "Elaboración Asignada";
         const comedorElabs = service.elaborations?.comedor?.filter(e => e.responsibleGroupId === unitId) || [];
         const takeawayElabs = service.elaborations?.takeaway?.filter(e => e.responsibleGroupId === unitId) || [];
         const allElabs = [...comedorElabs, ...takeawayElabs];
@@ -532,13 +558,21 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
                             if(unit.students.length === 0) return null;
                             return (
                                 <div key={unit.id} className="bg-white p-4 rounded-lg shadow-sm">
-                                    <h3 className="text-xl font-bold mb-3 text-gray-700">{unit.name}</h3>
+                                    <h3 className="text-xl font-bold mb-1 text-gray-700">{unit.name}</h3>
                                     {renderAssignedDishes(unit.id)}
                                     <div className="mb-4">
                                         <label htmlFor={`group-obs-${unit.id}`} className="block text-sm font-semibold text-gray-600 mb-1">Observaciones del Grupo</label>
                                         <textarea id={`group-obs-${unit.id}`} value={evaluation.preService[activePreServiceDate]?.groupObservations[unit.id] || ''} onChange={(e) => handlePreServiceGroupObservationChange(activePreServiceDate!, unit.id, e.target.value)} disabled={isLocked} rows={3} className="w-full p-2 text-sm border rounded-md bg-white disabled:bg-gray-100" placeholder="Anotaciones sobre el comportamiento, limpieza, organización, etc. del grupo en general." />
                                     </div>
-                                    <PreServiceIndividualTable studentsInGroup={unit.students} evaluationData={evaluation.preService[activePreServiceDate!]} entryExitRecordsForWeek={entryExitRecordsForWeek} onUpdate={(studentId, field, value, behaviorItemId) => handlePreServiceIndividualUpdate(activePreServiceDate!, studentId, field, value, behaviorItemId)} isLocked={isLocked}/>
+                                    <PreServiceIndividualTable 
+                                        studentsInGroup={unit.students} 
+                                        evaluationData={evaluation.preService[activePreServiceDate!]} 
+                                        entryExitRecordsForWeek={entryExitRecordsForWeek} 
+                                        onUpdate={(studentId, field, value, behaviorItemId) => handlePreServiceIndividualUpdate(activePreServiceDate!, studentId, field, value, behaviorItemId)} 
+                                        isLocked={isLocked}
+                                        service={service}
+                                        serviceRoles={serviceRoles}
+                                    />
                                 </div>
                             );
                         })
@@ -588,9 +622,18 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
                         if(unit.students.length === 0) return null;
                         return(
                             <div key={unit.id} className="bg-white p-4 rounded-lg shadow-sm">
-                                <h3 className="text-xl font-bold mb-3 text-gray-700">Evaluación Individual - {unit.name}</h3>
+                                <h3 className="text-xl font-bold mb-1 text-gray-700">Evaluación Individual - {unit.name}</h3>
                                 {renderAssignedDishes(unit.id)}
-                                <ServiceDayIndividualEvaluationTable studentsInGroup={unit.students} evaluationData={evaluation.serviceDay.individualScores} onUpdate={handleServiceDayIndividualUpdate} handleNumericInputChange={handleNumericInputChange} entryExitRecordsForWeek={entryExitRecordsForWeek} isLocked={isLocked}/>
+                                <ServiceDayIndividualEvaluationTable 
+                                    studentsInGroup={unit.students} 
+                                    evaluationData={evaluation.serviceDay.individualScores} 
+                                    onUpdate={handleServiceDayIndividualUpdate} 
+                                    handleNumericInputChange={handleNumericInputChange} 
+                                    entryExitRecordsForWeek={entryExitRecordsForWeek} 
+                                    isLocked={isLocked}
+                                    service={service}
+                                    serviceRoles={serviceRoles}
+                                />
                             </div>
                         )
                     })}

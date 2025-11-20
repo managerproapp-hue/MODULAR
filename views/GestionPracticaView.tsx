@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { Service, ServiceEvaluation, Elaboration, Student, PracticeGroup, ServiceRole, TeacherData, InstituteData, Agrupacion } from '../types';
 import { PlusIcon, TrashIcon, SaveIcon, ChefHatIcon, LockClosedIcon, LockOpenIcon, FileTextIcon, ChevronDownIcon, ChevronRightIcon, UsersIcon } from '../components/icons';
@@ -588,6 +586,7 @@ const GestionPracticaView: React.FC<GestionPracticaViewProps> = ({
                            practiceGroups={practiceGroups}
                            entryExitRecords={entryExitRecords}
                            isLocked={isLocked}
+                           serviceRoles={serviceRoles}
                         />
                     </Suspense>
                 )}
