@@ -400,6 +400,27 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
         }
     };
 
+    const handlePreServiceGroupObservationChange = (date: string, groupId: string, value: string) => {
+        deepCloneAndUpdate(draft => {
+            if (draft.preService[date]) {
+                if (!draft.preService[date].groupObservations) draft.preService[date].groupObservations = {};
+                // Cast to avoid potential unknown index type error
+                (draft.preService[date].groupObservations as Record<string, string>)[groupId] = value;
+            }
+        });
+    };
+    
+    const handlePreServiceNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!activePreServiceDate) return;
+        const newName = e.target.value;
+        const date = activePreServiceDate;
+        deepCloneAndUpdate(draft => {
+            if(draft.preService?.[date]) {
+                draft.preService[date].name = newName;
+            }
+        });
+    };
+
     const handlePreServiceIndividualUpdate = (date: string, studentId: string, field: keyof PreServiceIndividualEvaluation, value: any, behaviorItemId?: string) => {
         deepCloneAndUpdate(draft => {
             const preServiceDay = draft.preService?.[date];
@@ -407,7 +428,8 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
                 return;
             }
             
-            const evaluations = preServiceDay.individualEvaluations;
+            // Explicit cast to avoid "Type 'unknown' cannot be used as an index type"
+            const evaluations = preServiceDay.individualEvaluations as Record<string, PreServiceIndividualEvaluation>;
             if (!evaluations) return;
 
             const individualEval = evaluations[studentId];
@@ -425,26 +447,6 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
                 }
             } else {
                  (individualEval as any)[field] = value;
-            }
-        });
-    };
-
-    const handlePreServiceGroupObservationChange = (date: string, groupId: string, value: string) => {
-        deepCloneAndUpdate(draft => {
-            if (draft.preService[date]) {
-                if (!draft.preService[date].groupObservations) draft.preService[date].groupObservations = {};
-                draft.preService[date].groupObservations[groupId] = value;
-            }
-        });
-    };
-    
-    const handlePreServiceNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!activePreServiceDate) return;
-        const newName = e.target.value;
-        const date = activePreServiceDate;
-        deepCloneAndUpdate(draft => {
-            if(draft.preService?.[date]) {
-                draft.preService[date].name = newName;
             }
         });
     };

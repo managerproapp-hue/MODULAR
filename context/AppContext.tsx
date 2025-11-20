@@ -239,15 +239,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             const studentPracticeGroup = practiceGroups.find(pg => pg.studentIds.includes(student.id));
     
             (['t1', 't2', 't3'] as const).forEach(trimester => {
-                if (!trimesterDates[trimester]) return;
-    
-                const trimesterStart = new Date(trimesterDates[trimester]!.start + 'T00:00:00');
-                const trimesterEnd = new Date(trimesterDates[trimester]!.end + 'T23:59:59');
-    
-                const servicesInTrimester = services.filter(s => {
-                    const serviceDate = new Date(s.date + 'T12:00:00');
-                    return serviceDate >= trimesterStart && serviceDate <= trimesterEnd;
-                });
+                // Use the 'trimester' property of the service object (e.g. 't1') to filter.
+                // This ensures consistency with the Planning/Service views where services are categorized by this property.
+                const servicesInTrimester = services.filter(s => s.trimester === trimester);
     
                 const serviceScoresForTrimester: number[] = [];
                 servicesInTrimester.forEach(service => {
@@ -307,7 +301,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         });
     
         return studentGrades;
-    }, [students, services, serviceEvaluations, practicalExamEvaluations, practiceGroups, trimesterDates]);
+    }, [students, services, serviceEvaluations, practicalExamEvaluations, practiceGroups]);
     
     // --- Generic CRUD Handlers ---
     const createCRUDHandlers = (
