@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Service, ServiceEvaluation, Student, PracticeGroup, EntryExitRecord, PreServiceDayEvaluation, ServiceDayIndividualScores, Agrupacion, PreServiceIndividualEvaluation, ServiceRole } from '../types';
 import { PRE_SERVICE_BEHAVIOR_ITEMS, BEHAVIOR_RATING_MAP, GROUP_EVALUATION_ITEMS, INDIVIDUAL_EVALUATION_ITEMS } from '../data/constants';
@@ -78,7 +77,7 @@ const PreServiceIndividualTable: React.FC<{
                                 const evaluations = evaluationData?.individualEvaluations as Record<string, PreServiceIndividualEvaluation> || {};
                                 const indEval = evaluations[s.id];
                                 const isAbsent = !(indEval?.attendance ?? true);
-                                const currentScore = indEval?.behaviorScores[item.id];
+                                const currentScore = indEval?.behaviorScores?.[item.id];
                                 return (
                                 <td key={s.id} className="p-1 border text-center">
                                     <div className="flex justify-center items-center space-x-1">
@@ -423,7 +422,10 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
 
     const handlePreServiceIndividualUpdate = (date: string, studentId: string, field: keyof PreServiceIndividualEvaluation, value: any, behaviorItemId?: string) => {
         deepCloneAndUpdate(draft => {
-            const preServiceDay = draft.preService?.[date];
+            // Cast preService to Record to avoid "Type 'unknown' cannot be used as an index type" error
+            const preServiceMap = draft.preService as Record<string, PreServiceDayEvaluation>;
+            const preServiceDay = preServiceMap?.[date];
+            
             if (!preServiceDay) {
                 return;
             }

@@ -1,3 +1,4 @@
+
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { ReportViewModel, Student, ServiceRole, TeacherData, InstituteData, StudentCalculatedGrades, StudentAcademicGrades, StudentCourseGrades, TimelineEvent, GradeValue, UnidadTrabajo, ResultadoAprendizaje, CriterioEvaluacion, InstrumentoEvaluacion } from '../types';
@@ -229,10 +230,10 @@ export const generateTrackingSheetPDF = (viewModel: ReportViewModel) => {
             3: { cellWidth: 12, halign: 'center' }, // D1 Unif.
             4: { cellWidth: 12, halign: 'center' }, // D1 Fichas
             5: { cellWidth: 12, halign: 'center' }, // D1 Mat.
-            6: { cellWidth: 12, halign: 'center' }, // D2 Asist.
-            7: { cellWidth: 12, halign: 'center' }, // D2 Unif.
-            8: { cellWidth: 12, halign: 'center' }, // D2 Fichas
-            9: { cellWidth: 12, halign: 'center' }, // D2 Mat.
+            6: { cellWidth: 12, halign: 'center' }, // D1 Asist.
+            7: { cellWidth: 12, halign: 'center' }, // D1 Unif.
+            8: { cellWidth: 12, halign: 'center' }, // D1 Fichas
+            9: { cellWidth: 12, halign: 'center' }, // D1 Mat.
             10: { cellWidth: 25, halign: 'center' }, // Conducta
             11: { cellWidth: 'auto' }, // Observaciones
         },
@@ -318,9 +319,9 @@ export const generateFullEvaluationReportPDF = (viewModel: ReportViewModel) => {
 
 
 // --- Detailed Student Service Report PDF (Internal Helper) ---
-const _drawDetailedStudentReportPage = (doc: jsPDF, viewModel: ReportViewModel, studentId: string) => {
-    const { service, evaluation, students, practiceGroups, teacherData, instituteData, entryExitRecords } = viewModel;
-    const student = students.find(s => s.id === studentId);
+const _drawDetailedStudentReportPage = (doc: jsPDF, viewModel: ReportViewModel, student: Student) => {
+    const { service, evaluation, practiceGroups, teacherData, instituteData, entryExitRecords } = viewModel;
+    
     if (!student) return;
 
     let lastY = 0;
@@ -352,11 +353,14 @@ const _drawDetailedStudentReportPage = (doc: jsPDF, viewModel: ReportViewModel, 
         if (serviceDayEval.observations) serviceDayBody.push([{ content: 'Observaciones (Día de Servicio):', styles: { fontStyle: 'bold' } }, serviceDayEval.observations]);
     } else { serviceDayBody.push(['- Sin datos de día de servicio -']); }
 
-    const incidents = entryExitRecords.filter(rec => rec.studentId === studentId).map(rec => [rec.date, rec.type, rec.reason]);
+    const incidents = entryExitRecords.filter(rec => rec.studentId === student.id).map(rec => [rec.date, rec.type, rec.reason]);
+    
+    // Safe name construction
+    const studentName = [student.nombre, student.apellido1, student.apellido2].filter(Boolean).join(' ');
 
     if (service.type === 'agrupacion') {
         const studentAgrupacion = service.agrupaciones?.find(a => a.studentIds.includes(student.id));
-        autoTable(doc, { startY: 30, head: [['Resumen del Servicio']], body: [['Servicio:', service.name], ['Fecha:', new Date(service.date + 'T12:00:00Z').toLocaleDateString('es-ES')], ['Alumno:', `${student.apellido1} ${student.apellido2}, ${student.nombre}`], ['Elaboración:', studentAgrupacion ? studentAgrupacion.name : 'No asignado']], theme: 'striped', headStyles: { fillColor: [74, 85, 104] }, didDrawPage, margin: { bottom: 20 } });
+        autoTable(doc, { startY: 30, head: [['Resumen del Servicio']], body: [['Servicio:', service.name], ['Fecha:', new Date(service.date + 'T12:00:00Z').toLocaleDateString('es-ES')], ['Alumno:', studentName], ['Elaboración:', studentAgrupacion ? studentAgrupacion.name : 'No asignado']], theme: 'striped', headStyles: { fillColor: [74, 85, 104] }, didDrawPage, margin: { bottom: 20 } });
         lastY = (doc as any).lastAutoTable.finalY;
 
         autoTable(doc, { startY: lastY + 8, head: [['Evaluación Individual - Día Previo']], body: preServiceBody, theme: 'grid', headStyles: { fillColor: [49, 130, 206] }, didDrawPage, margin: { bottom: 20 } });
@@ -366,7 +370,7 @@ const _drawDetailedStudentReportPage = (doc: jsPDF, viewModel: ReportViewModel, 
         lastY = (doc as any).lastAutoTable.finalY;
     } else {
         const studentGroup = practiceGroups.find(g => g.studentIds.includes(student.id));
-        autoTable(doc, { startY: 30, head: [['Resumen del Servicio']], body: [['Servicio:', service.name], ['Fecha:', new Date(service.date + 'T12:00:00Z').toLocaleDateString('es-ES')], ['Alumno:', `${student.apellido1} ${student.apellido2}, ${student.nombre}`], ['Grupo:', studentGroup ? studentGroup.name : 'No asignado']], theme: 'striped', headStyles: { fillColor: [74, 85, 104] }, didDrawPage, margin: { bottom: 20 } });
+        autoTable(doc, { startY: 30, head: [['Resumen del Servicio']], body: [['Servicio:', service.name], ['Fecha:', new Date(service.date + 'T12:00:00Z').toLocaleDateString('es-ES')], ['Alumno:', studentName], ['Grupo:', studentGroup ? studentGroup.name : 'No asignado']], theme: 'striped', headStyles: { fillColor: [74, 85, 104] }, didDrawPage, margin: { bottom: 20 } });
         lastY = (doc as any).lastAutoTable.finalY;
         
         autoTable(doc, { startY: lastY + 8, head: [['Evaluación Individual - Día Previo']], body: preServiceBody, theme: 'grid', headStyles: { fillColor: [49, 130, 206] }, didDrawPage, margin: { bottom: 20 } });
@@ -391,7 +395,7 @@ export const generateDetailedStudentServiceReportPDF = (viewModel: ReportViewMod
     const student = viewModel.students.find(s => s.id === studentId);
     if (!student) return;
     const doc = new jsPDF('p', 'mm', 'a4');
-    _drawDetailedStudentReportPage(doc, viewModel, studentId);
+    _drawDetailedStudentReportPage(doc, viewModel, student);
     doc.save(`Informe_${viewModel.service.name.replace(/ /g, '_')}_${student.apellido1}.pdf`);
 };
 
@@ -399,7 +403,7 @@ export const generateAllDetailedStudentReportsPDF = (viewModel: ReportViewModel)
     const doc = new jsPDF('p', 'mm', 'a4');
     viewModel.participatingStudents.forEach((student, index) => {
         if (index > 0) doc.addPage();
-        _drawDetailedStudentReportPage(doc, viewModel, student.id);
+        _drawDetailedStudentReportPage(doc, viewModel, student);
     });
     doc.save(`Informes_Alumnos_${viewModel.service.name.replace(/ /g, '_')}.pdf`);
 };
