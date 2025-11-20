@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Service, ServiceEvaluation, Student, PracticeGroup, EntryExitRecord, PreServiceDayEvaluation, ServiceDayIndividualScores, Agrupacion, PreServiceIndividualEvaluation } from '../types';
 import { PRE_SERVICE_BEHAVIOR_ITEMS, BEHAVIOR_RATING_MAP, GROUP_EVALUATION_ITEMS, INDIVIDUAL_EVALUATION_ITEMS } from '../data/constants';
-import { PlusIcon, TrashIcon } from '../components/icons';
+import { PlusIcon, TrashIcon, ChefHatIcon } from '../components/icons';
 
 interface ServiceEvaluationViewProps {
     service: Service;
@@ -380,7 +380,11 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
             if (!preServiceDay) {
                 return;
             }
-            const individualEval = preServiceDay.individualEvaluations[studentId];
+            // Explicitly cast individualEvaluations to Record<string, PreServiceIndividualEvaluation>
+            // to avoid "Type 'unknown' cannot be used as an index type" error
+            const evaluations = preServiceDay.individualEvaluations as Record<string, PreServiceIndividualEvaluation>;
+            const individualEval = evaluations[studentId];
+
             if (!individualEval) {
                 return;
             }
@@ -454,6 +458,43 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
         }
     };
 
+    // --- Helper to Render Assigned Dishes ---
+    const renderAssignedDishes = (unitId: string) => {
+        if (service.type === 'agrupacion') return (
+            <div className="mb-3 text-sm text-purple-600 bg-purple-50 px-3 py-1 rounded-full inline-block border border-purple-200">
+                <span className="font-bold">Elaboración Asignada:</span> {evaluationUnits.find(u => u.id === unitId)?.name}
+            </div>
+        );
+
+        const comedorElabs = service.elaborations?.comedor?.filter(e => e.responsibleGroupId === unitId) || [];
+        const takeawayElabs = service.elaborations?.takeaway?.filter(e => e.responsibleGroupId === unitId) || [];
+        const allElabs = [...comedorElabs, ...takeawayElabs];
+
+        if (allElabs.length === 0) return (
+            <div className="mb-3 text-xs text-gray-500 italic">Sin platos asignados</div>
+        );
+
+        return (
+            <div className="mb-4 flex flex-wrap gap-2">
+                {allElabs.map(e => (
+                    <span key={e.id} className="px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 border border-indigo-200 flex items-center">
+                       <ChefHatIcon className="w-3 h-3 mr-1"/> {e.name}
+                    </span>
+                ))}
+            </div>
+        );
+    };
+    
+    // Helper for simple string display in table headers
+    const getDishesStringForUnit = (unitId: string) => {
+        if (service.type === 'agrupacion') return "Elaboración Única";
+        const comedorElabs = service.elaborations?.comedor?.filter(e => e.responsibleGroupId === unitId) || [];
+        const takeawayElabs = service.elaborations?.takeaway?.filter(e => e.responsibleGroupId === unitId) || [];
+        const allElabs = [...comedorElabs, ...takeawayElabs];
+        if(allElabs.length === 0) return "Sin platos";
+        return allElabs.map(e => e.name).join(", ");
+    };
+
     return (
         <div className="space-y-6">
             <div className="bg-white p-2 rounded-lg shadow-sm">
@@ -492,6 +533,7 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
                             return (
                                 <div key={unit.id} className="bg-white p-4 rounded-lg shadow-sm">
                                     <h3 className="text-xl font-bold mb-3 text-gray-700">{unit.name}</h3>
+                                    {renderAssignedDishes(unit.id)}
                                     <div className="mb-4">
                                         <label htmlFor={`group-obs-${unit.id}`} className="block text-sm font-semibold text-gray-600 mb-1">Observaciones del Grupo</label>
                                         <textarea id={`group-obs-${unit.id}`} value={evaluation.preService[activePreServiceDate]?.groupObservations[unit.id] || ''} onChange={(e) => handlePreServiceGroupObservationChange(activePreServiceDate!, unit.id, e.target.value)} disabled={isLocked} rows={3} className="w-full p-2 text-sm border rounded-md bg-white disabled:bg-gray-100" placeholder="Anotaciones sobre el comportamiento, limpieza, organización, etc. del grupo en general." />
@@ -509,7 +551,19 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
                     <div className="bg-white p-4 rounded-lg shadow-sm overflow-x-auto">
                          <h3 className="text-xl font-bold mb-3 text-gray-700">{service.type === 'agrupacion' ? 'Evaluación de Agrupaciones' : 'Evaluación Grupal'}</h3>
                          <table className="min-w-full text-sm border-collapse">
-                             <thead className="bg-gray-100"><tr><th className="p-2 border font-semibold text-left">Criterio</th>{evaluationUnits.map(unit => <th key={unit.id} className="p-2 border font-semibold">{unit.name}</th>)}</tr></thead>
+                             <thead className="bg-gray-100">
+                                 <tr>
+                                     <th className="p-2 border font-semibold text-left">Criterio</th>
+                                     {evaluationUnits.map(unit => (
+                                         <th key={unit.id} className="p-2 border font-semibold align-top">
+                                             <div>{unit.name}</div>
+                                             <div className="text-[10px] font-normal text-gray-500 mt-1 max-w-[150px] truncate mx-auto" title={getDishesStringForUnit(unit.id)}>
+                                                 {getDishesStringForUnit(unit.id)}
+                                             </div>
+                                         </th>
+                                     ))}
+                                 </tr>
+                             </thead>
                              <tbody>
                                  {GROUP_EVALUATION_ITEMS.map((item, itemIndex) => (<tr key={item.id}><td className="p-2 border text-left">{item.label}</td>{evaluationUnits.map(unit => {const groupEval = evaluation.serviceDay.groupScores[unit.id]; return (<td key={unit.id} className="p-1 border align-middle"><input type="number" step="0.1" min="0" max={item.maxScore} value={groupEval?.scores[itemIndex] ?? ''} onChange={e => handleNumericInputChange(e, item.maxScore, (value) => {deepCloneAndUpdate(draft => {if (!draft.serviceDay.groupScores[unit.id]) draft.serviceDay.groupScores[unit.id] = { scores: Array(GROUP_EVALUATION_ITEMS.length).fill(null), observations: ''}; draft.serviceDay.groupScores[unit.id]!.scores[itemIndex] = value;})})} placeholder={`max: ${item.maxScore.toFixed(2)}`} className="w-full text-center p-1.5 rounded-md border-gray-300 placeholder-gray-300 disabled:bg-gray-100" disabled={isLocked}/></td>)})}</tr>))}
                              </tbody>
@@ -532,7 +586,13 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
 
                     {evaluationUnits.map(unit => {
                         if(unit.students.length === 0) return null;
-                        return(<div key={unit.id} className="bg-white p-4 rounded-lg shadow-sm"><h3 className="text-xl font-bold mb-3 text-gray-700">Evaluación Individual - {unit.name}</h3><ServiceDayIndividualEvaluationTable studentsInGroup={unit.students} evaluationData={evaluation.serviceDay.individualScores} onUpdate={handleServiceDayIndividualUpdate} handleNumericInputChange={handleNumericInputChange} entryExitRecordsForWeek={entryExitRecordsForWeek} isLocked={isLocked}/></div>)
+                        return(
+                            <div key={unit.id} className="bg-white p-4 rounded-lg shadow-sm">
+                                <h3 className="text-xl font-bold mb-3 text-gray-700">Evaluación Individual - {unit.name}</h3>
+                                {renderAssignedDishes(unit.id)}
+                                <ServiceDayIndividualEvaluationTable studentsInGroup={unit.students} evaluationData={evaluation.serviceDay.individualScores} onUpdate={handleServiceDayIndividualUpdate} handleNumericInputChange={handleNumericInputChange} entryExitRecordsForWeek={entryExitRecordsForWeek} isLocked={isLocked}/>
+                            </div>
+                        )
                     })}
                  </div>
             )}
