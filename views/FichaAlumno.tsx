@@ -11,7 +11,8 @@ import {
     PrinterIcon,
     ChevronDownIcon,
     ChevronRightIcon,
-    BarChartIcon
+    BarChartIcon,
+    TrashIcon
 } from '../components/icons';
 import { useAppContext } from '../context/AppContext';
 import { generateStudentFilePDF } from '../services/reportGenerator';
@@ -133,6 +134,7 @@ const FichaAlumno: React.FC<FichaAlumnoProps> = ({ student, onBack, onUpdatePhot
     practiceGroups,
     serviceEvaluations,
     entryExitRecords: allEntryExitRecords,
+    handleDeleteEntryExitRecord,
     addToast
   } = useAppContext();
 
@@ -229,6 +231,12 @@ const FichaAlumno: React.FC<FichaAlumnoProps> = ({ student, onBack, onUpdatePhot
           teacherData,
           instituteData
       );
+  };
+  
+  const handleDeleteRecord = (id: string) => {
+      if (window.confirm("¿Estás seguro de que quieres anular este registro de entrada/salida?")) {
+          handleDeleteEntryExitRecord(id);
+      }
   };
 
   const handleToggleConvalidation = (moduleName: string) => {
@@ -400,6 +408,36 @@ const FichaAlumno: React.FC<FichaAlumnoProps> = ({ student, onBack, onUpdatePhot
                     </dl>
                 </div>
                 <div className="w-full xl:col-span-1 space-y-6">
+                     {/* New Section: Entry/Exit Records with Delete Capability */}
+                     <div className="bg-white shadow-md rounded-lg p-4">
+                        <h3 className="text-lg font-bold text-gray-800 mb-4 text-orange-600 flex items-center">
+                            <ArrowRightLeftIcon className="w-5 h-5 mr-2"/> Registro de Salidas y Entradas
+                        </h3>
+                        <div className="max-h-64 overflow-y-auto pr-2 space-y-2 text-sm">
+                            {studentEntryExitRecords.length > 0 ? (
+                                studentEntryExitRecords.map(record => (
+                                    <div key={record.id} className="p-2 bg-gray-50 rounded-md group hover:bg-gray-100 transition-colors">
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex-1">
+                                                <p className="font-semibold">{record.date} - <span className={record.type === 'Salida Anticipada' ? 'text-red-600' : 'text-blue-600'}>{record.type}</span></p>
+                                                <p className="text-gray-600 break-words text-xs">{record.reason}</p>
+                                            </div>
+                                            <button 
+                                                onClick={() => handleDeleteRecord(record.id)} 
+                                                className="ml-2 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                title="Anular Registro"
+                                            >
+                                                <TrashIcon className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-sm text-gray-500 italic text-center">No hay registros de salidas o entradas.</p>
+                            )}
+                        </div>
+                    </div>
+
                     <div className="bg-white shadow-md rounded-lg p-4 sticky top-4">
                         <h3 className="text-lg font-bold text-gray-800 mb-4">Historial y Anotaciones</h3>
                         <div className="relative max-h-96 overflow-y-auto pr-2">

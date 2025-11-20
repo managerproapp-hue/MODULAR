@@ -400,39 +400,31 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
         }
     };
 
-    // FIX: Replaced an unsafe if/else if chain with a type-safe switch statement to correctly handle updates for different fields of PreServiceIndividualEvaluation and resolve a potential type error.
     const handlePreServiceIndividualUpdate = (date: string, studentId: string, field: keyof PreServiceIndividualEvaluation, value: any, behaviorItemId?: string) => {
         deepCloneAndUpdate(draft => {
-            const preServiceDay = draft.preService[date];
+            const preServiceDay = draft.preService?.[date];
             if (!preServiceDay) {
                 return;
             }
-            // Explicitly cast individualEvaluations to any to avoid "Type 'unknown' cannot be used as an index type" error
-            const evaluations = preServiceDay.individualEvaluations as any;
-            const individualEval = evaluations[studentId] as PreServiceIndividualEvaluation;
+            
+            const evaluations = preServiceDay.individualEvaluations;
+            if (!evaluations) return;
+
+            const individualEval = evaluations[studentId];
 
             if (!individualEval) {
                 return;
             }
     
-            switch (field) {
-                case 'behaviorScores':
-                    if (behaviorItemId) {
-                        if (!individualEval.behaviorScores) {
-                            individualEval.behaviorScores = {};
-                        }
-                        individualEval.behaviorScores[behaviorItemId] = value;
+            if (field === 'behaviorScores') {
+                 if (behaviorItemId) {
+                    if (!individualEval.behaviorScores) {
+                        individualEval.behaviorScores = {};
                     }
-                    break;
-                case 'observations':
-                    individualEval.observations = value;
-                    break;
-                case 'attendance':
-                case 'hasFichas':
-                case 'hasUniforme':
-                case 'hasMaterial':
-                    individualEval[field] = value;
-                    break;
+                    individualEval.behaviorScores[behaviorItemId] = value;
+                }
+            } else {
+                 (individualEval as any)[field] = value;
             }
         });
     };

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { 
     Student, PracticeGroup, Service, ServiceEvaluation, ServiceRole, EntryExitRecord, 
@@ -135,6 +136,7 @@ interface AppContextType {
     onDeleteRole: (roleId: string) => void;
 
     handleSaveEntryExitRecord: (record: Omit<EntryExitRecord, 'id' | 'studentId'>, studentIds: string[]) => void;
+    handleDeleteEntryExitRecord: (recordId: string) => void;
     handleSavePracticalExam: (evaluation: PracticalExamEvaluation) => void;
     
     // CRUD for PC
@@ -446,6 +448,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setEntryExitRecords(prev => [...prev, ...newRecords]);
         addToast(`Registro de ${record.type} guardado para ${studentIds.length} alumno(s).`, 'success');
     };
+
+    const handleDeleteEntryExitRecord = (recordId: string) => {
+        setEntryExitRecords(prev => prev.filter(r => r.id !== recordId));
+        addToast('Registro eliminado.', 'info');
+    };
+
     const handleSavePracticalExam = (evaluation: PracticalExamEvaluation) => {
         setPracticalExamEvaluations(prev => {
             const index = prev.findIndex(e => e.id === evaluation.id);
@@ -490,7 +498,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         profesores, setProfesores,
         toasts, addToast,
         handleFileUpload, handleUpdateStudent,
-        handleCreateService, handleSaveServiceAndEvaluation, handleDeleteService, onDeleteRole, handleSaveEntryExitRecord, handleSavePracticalExam,
+        handleCreateService, handleSaveServiceAndEvaluation, handleDeleteService, onDeleteRole, handleSaveEntryExitRecord, handleDeleteEntryExitRecord, handleSavePracticalExam,
         
         handleSavePCRA: pcCRUD.handleSaveRA, handleDeletePCRA: pcCRUD.handleDeleteRA, handleSavePCCriterio: pcCRUD.handleSaveCriterio, handleDeletePCCriterio: pcCRUD.handleDeleteCriterio, handleSavePCUT: pcCRUD.handleSaveUT, handleDeletePCUT: pcCRUD.handleDeleteUT, handleDeletePCInstrumento: pcCRUD.handleDeleteInstrumento,
         handleSaveOptativaRA: optativaCRUD.handleSaveRA, handleDeleteOptativaRA: optativaCRUD.handleDeleteRA, handleSaveOptativaCriterio: optativaCRUD.handleSaveCriterio, handleDeleteOptativaCriterio: optativaCRUD.handleDeleteCriterio, handleSaveOptativaUT: optativaCRUD.handleSaveUT, handleDeleteOptativaUT: optativaCRUD.handleDeleteUT, handleDeleteOptativaInstrumento: optativaCRUD.handleDeleteInstrumento,
