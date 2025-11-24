@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Service, ServiceEvaluation, Student, PracticeGroup, EntryExitRecord, PreServiceDayEvaluation, ServiceDayIndividualScores, Agrupacion, PreServiceIndividualEvaluation, ServiceRole } from '../types';
 import { PRE_SERVICE_BEHAVIOR_ITEMS, BEHAVIOR_RATING_MAP, GROUP_EVALUATION_ITEMS, INDIVIDUAL_EVALUATION_ITEMS } from '../data/constants';
@@ -397,10 +398,11 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
 
     const handlePreServiceGroupObservationChange = (date: string, groupId: string, value: string) => {
         deepCloneAndUpdate(draft => {
-            if (draft.preService[date]) {
-                if (!draft.preService[date].groupObservations) draft.preService[date].groupObservations = {};
-                // Cast to avoid potential unknown index type error
-                (draft.preService[date].groupObservations as Record<string, string>)[groupId] = value;
+            const preService = draft.preService as Record<string, PreServiceDayEvaluation>;
+            if (preService[date]) {
+                if (!preService[date].groupObservations) preService[date].groupObservations = {};
+                const groupObservations = preService[date].groupObservations as Record<string, string>;
+                groupObservations[groupId] = value;
             }
         });
     };
@@ -410,15 +412,15 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
         const newName = e.target.value;
         const date = activePreServiceDate;
         deepCloneAndUpdate(draft => {
-            if(draft.preService?.[date]) {
-                draft.preService[date].name = newName;
+            const preService = draft.preService as Record<string, PreServiceDayEvaluation>;
+            if(preService?.[date]) {
+                preService[date].name = newName;
             }
         });
     };
 
     const handlePreServiceIndividualUpdate = (date: string, studentId: string, field: keyof PreServiceIndividualEvaluation, value: any, behaviorItemId?: string) => {
         deepCloneAndUpdate(draft => {
-            // Ensure preService is treated as a Record to avoid indexing errors
             const preServiceMap = (draft.preService || {}) as Record<string, PreServiceDayEvaluation>;
             const preServiceDay = preServiceMap[date];
             
@@ -426,25 +428,21 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
                 return;
             }
             
-            // Explicit cast to avoid "Type 'unknown' cannot be used as an index type"
             const evaluations = (preServiceDay.individualEvaluations || {}) as Record<string, PreServiceIndividualEvaluation>;
-
             const individualEval = evaluations[studentId];
 
             if (!individualEval) {
                 return;
             }
     
-            if (field === 'behaviorScores') {
-                 if (behaviorItemId) {
-                    if (!individualEval.behaviorScores) {
-                        individualEval.behaviorScores = {};
-                    }
-                    // Explicit cast for behaviorScores indexing
-                    (individualEval.behaviorScores as Record<string, number | null>)[behaviorItemId as string] = value;
+            if (field === 'behaviorScores' && behaviorItemId) {
+                if (!individualEval.behaviorScores) {
+                    individualEval.behaviorScores = {};
                 }
+                const behaviorScores = individualEval.behaviorScores as Record<string, number | null>;
+                behaviorScores[behaviorItemId] = value;
             } else {
-                 (individualEval as any)[field as string] = value;
+                 (individualEval as any)[field] = value;
             }
         });
     };

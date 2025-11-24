@@ -19,6 +19,7 @@ const RAView = lazy(() => import('./views/RAView'));
 const UTView = lazy(() => import('./views/UTView'));
 const InstrumentosView = lazy(() => import('./views/InstrumentosView'));
 const ModuleDashboardView = lazy(() => import('./views/ModuleDashboardView'));
+const ExamSchedulerView = lazy(() => import('./views/ExamSchedulerView'));
 
 
 const AppContent: React.FC = () => {
@@ -96,6 +97,8 @@ const AppContent: React.FC = () => {
 
             case 'salidas-entradas':
                 return <RegistroSalidasEntradasView />;
+            case 'exam-scheduler':
+                return <ExamSchedulerView />;
             case 'gestion-app':
                 return <GestionAppView />;
             default:

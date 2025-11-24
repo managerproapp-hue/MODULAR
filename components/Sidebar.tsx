@@ -17,6 +17,7 @@ import {
   FileSpreadsheetIcon,
   ChevronDownIcon,
   ChevronRightIcon as ChevronRight,
+  ClockIcon
 } from './icons';
 
 interface SidebarProps {
@@ -154,6 +155,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView }) => {
             Otros
           </h3>
           <NavLink icon={ArrowRightLeftIcon} label="Salidas/Entradas" isActive={activeView === 'salidas-entradas'} onClick={() => setActiveView('salidas-entradas')} isCollapsed={isCollapsed}/>
+          <NavLink icon={ClockIcon} label="Planificador Exámenes" isActive={activeView === 'exam-scheduler'} onClick={() => setActiveView('exam-scheduler')} isCollapsed={isCollapsed}/>
           <NavLink icon={SettingsIcon} label="Gestión App" isActive={activeView === 'gestion-app'} onClick={() => setActiveView('gestion-app')} isCollapsed={isCollapsed}/>
         </nav>
         
