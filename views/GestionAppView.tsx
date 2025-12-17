@@ -136,7 +136,7 @@ const GestionAppView: React.FC = () => {
     
     const backupOptions = [
         'students', 'practiceGroups', 'services', 'serviceEvaluations', 'serviceRoles', 'entryExitRecords', 
-        'academicGrades', 'courseGrades', 'practicalExamEvaluations', 
+        'academicGrades', 'courseGrades', 'instrumentGrades', 'practicalExamEvaluations', 
         'pc-resultadosAprendizaje', 'pc-criteriosEvaluacion', 'pc-instrumentosEvaluacion', 'pc-unidadesTrabajo',
         'optativa-resultadosAprendizaje', 'optativa-criteriosEvaluacion', 'optativa-instrumentosEvaluacion', 'optativa-unidadesTrabajo',
         'proyecto-resultadosAprendizaje', 'proyecto-criteriosEvaluacion', 'proyecto-instrumentosEvaluacion', 'proyecto-unidadesTrabajo',
@@ -151,8 +151,9 @@ const GestionAppView: React.FC = () => {
         'serviceEvaluations': 'Evaluaciones de Servicio',
         'serviceRoles': 'Roles de Servicio',
         'entryExitRecords': 'Salidas/Entradas',
-        'academicGrades': 'Notas Académicas',
+        'academicGrades': 'Notas Académicas (Principal)',
         'courseGrades': 'Notas Otros Módulos',
+        'instrumentGrades': 'Notas por Instrumentos (Opt/Proy)',
         'practicalExamEvaluations': 'Exámenes Prácticos',
         'pc-resultadosAprendizaje': 'PC: RAs',
         'pc-criteriosEvaluacion': 'PC: Criterios',
