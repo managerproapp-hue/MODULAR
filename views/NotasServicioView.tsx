@@ -41,6 +41,7 @@ const NotasServicioView: React.FC<NotasServicioViewProps> = ({ onNavigateToServi
                 
                 const studentPracticeGroup = practiceGroups.find(pg => pg.studentIds.includes(student.id));
 
+                // BRANCHING LOGIC BY SERVICE TYPE
                 if (service.type === 'normal' && studentPracticeGroup) {
                     studentParticipated = (service.assignedGroups.comedor || []).includes(studentPracticeGroup.id) || 
                                        (service.assignedGroups.takeaway || []).includes(studentPracticeGroup.id);
@@ -63,14 +64,18 @@ const NotasServicioView: React.FC<NotasServicioViewProps> = ({ onNavigateToServi
                     return;
                 }
 
-                // Presence defaults to True unless False
+                // Presence defaults to True unless explicitly False
                 const isPresent = individualEval ? (individualEval.attendance ?? true) : true;
                 if (!isPresent) {
                     serviceScores[service.id] = { final: null, absent: true };
                     return;
                 }
                 
-                // 1. Group Part
+                // 1. Individual Part (60%)
+                const hasIndividualData = individualEval?.scores?.some(s => s !== null);
+                let individualGrade = (individualEval?.scores || []).reduce((sum, score) => sum + (score || 0), 0);
+                
+                // 2. Group Part (40%)
                 let groupGrade = 0;
                 let hasGroupData = false;
                 if (groupEvalSourceId) {
@@ -80,18 +85,14 @@ const NotasServicioView: React.FC<NotasServicioViewProps> = ({ onNavigateToServi
                         groupGrade = (groupEval.scores || []).reduce((sum, score) => sum + (score || 0), 0);
                     }
                 }
-
-                // 2. Individual Part
-                const hasIndividualData = individualEval?.scores?.some(s => s !== null);
-                let individualGrade = (individualEval?.scores || []).reduce((sum, score) => sum + (score || 0), 0);
                 
-                // If NO actual data points have been entered, return null to avoid showing "0.00"
+                // SKIP IF NO DATA ENTERED
                 if (!hasIndividualData && !hasGroupData) {
                     serviceScores[service.id] = { final: null, absent: false };
                     return;
                 }
 
-                // INHERITANCE: If individual is blank but group has data, give 100% of group grade
+                // INHERITANCE: If individual is blank but group is graded, student gets group grade
                 if (!hasIndividualData && hasGroupData) {
                     individualGrade = groupGrade;
                 }

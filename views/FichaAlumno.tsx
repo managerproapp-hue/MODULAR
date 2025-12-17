@@ -154,10 +154,6 @@ const FichaAlumno: React.FC<FichaAlumnoProps> = ({ student, onBack, onUpdatePhot
     [allEntryExitRecords, student.id]
   );
   
-  const sostenibilidadAverages = useMemo(() => {
-    return { t1: null, t2: null };
-  }, [student.id]);
-
   const timelineEvents = useMemo(() => {
     const events: TimelineEvent[] = [];
     const parseDate = (dateStr: string) => {
@@ -268,59 +264,101 @@ const FichaAlumno: React.FC<FichaAlumnoProps> = ({ student, onBack, onUpdatePhot
                 if (!evaluation) return null;
 
                 let participationInfo = null;
+                let groupEvalSourceId: string | undefined = undefined;
+
                 if (service.type === 'normal' && studentPracticeGroup && (service.assignedGroups.comedor.includes(studentPracticeGroup.id) || service.assignedGroups.takeaway.includes(studentPracticeGroup.id))) {
                     participationInfo = { groupName: studentPracticeGroup.name };
+                    groupEvalSourceId = studentPracticeGroup.id;
                 } else if (service.type === 'agrupacion') {
                     const agrupacion = service.agrupaciones?.find(a => a.studentIds.includes(student.id));
                     if (agrupacion) {
                         participationInfo = { groupName: `Agrup. ${agrupacion.name}` };
+                        groupEvalSourceId = agrupacion.id;
                     }
                 }
                 
                 if (!participationInfo) return null;
 
                 const individualEval = evaluation.serviceDay.individualScores[student.id];
-                if (!individualEval || individualEval.attendance === false) return null;
-                const individualGrade = (individualEval.scores || []).reduce((sum, score) => sum + (score || 0), 0);
+                const isPresent = individualEval ? (individualEval.attendance ?? true) : true;
+                if (!isPresent) return null;
+
+                // 1. Group / Agrupacion Grade
                 let groupGrade = 0;
-                if (studentPracticeGroup && service.type === 'normal') {
-                    const groupEval = evaluation.serviceDay.groupScores[studentPracticeGroup.id];
+                let hasGroupData = false;
+                if (groupEvalSourceId) {
+                    const groupEval = evaluation.serviceDay.groupScores[groupEvalSourceId];
                     if (groupEval) {
+                        hasGroupData = groupEval.scores?.some(s => s !== null);
                         groupGrade = (groupEval.scores || []).reduce((sum, score) => sum + (score || 0), 0);
-                        if (individualEval.halveGroupScore) groupGrade /= 2;
                     }
                 }
+
+                // 2. Individual Grade (60% weight)
+                const hasIndividualData = individualEval?.scores?.some(s => s !== null);
+                let individualGrade = (individualEval?.scores || []).reduce((sum, score) => sum + (score || 0), 0);
+                
+                // DATA CHECK
+                if (!hasIndividualData && !hasGroupData) return null;
+
+                // INHERITANCE: 100% of group grade if individual is blank
+                if (!hasIndividualData && hasGroupData) {
+                    individualGrade = groupGrade;
+                }
+
+                if (individualEval?.halveGroupScore) groupGrade /= 2;
+
                 const studentFinalGrade = (individualGrade * SERVICE_GRADE_WEIGHTS.individual) + (groupGrade * SERVICE_GRADE_WEIGHTS.group);
                 
                 const observations = [
-                    individualEval.observations,
-                    studentPracticeGroup ? evaluation.serviceDay.groupScores[studentPracticeGroup.id]?.observations : ''
+                    individualEval?.observations,
+                    groupEvalSourceId ? evaluation.serviceDay.groupScores[groupEvalSourceId]?.observations : ''
                 ].filter(Boolean).join(' | ');
                 
+                // Class Average Calculation (Sync logic)
                 const gradesOfAllStudents: number[] = [];
                 students.forEach(s => {
-                    let participated = false;
+                    let sParticipated = false;
+                    let sGroupSourceId: string | undefined = undefined;
                     const sPracticeGroup = practiceGroups.find(pg => pg.studentIds.includes(s.id));
+
                     if (service.type === 'normal' && sPracticeGroup && (service.assignedGroups.comedor.includes(sPracticeGroup.id) || service.assignedGroups.takeaway.includes(sPracticeGroup.id))) {
-                        participated = true;
-                    } else if (service.type === 'agrupacion' && (service.agrupaciones || []).some(a => a.studentIds.includes(s.id))) {
-                        participated = true;
+                        sParticipated = true;
+                        sGroupSourceId = sPracticeGroup.id;
+                    } else if (service.type === 'agrupacion') {
+                        const sAgrup = (service.agrupaciones || []).find(a => a.studentIds.includes(s.id));
+                        if (sAgrup) {
+                            sParticipated = true;
+                            sGroupSourceId = sAgrup.id;
+                        }
                     }
 
-                    if (participated) {
+                    if (sParticipated) {
                         const sIndividualEval = evaluation.serviceDay.individualScores[s.id];
-                        if (!sIndividualEval || sIndividualEval.attendance === false) {
+                        const sIsPresent = sIndividualEval ? (sIndividualEval.attendance ?? true) : true;
+                        
+                        if (!sIsPresent) {
                             gradesOfAllStudents.push(0);
                         } else {
-                            const sIndividualGrade = (sIndividualEval.scores || []).reduce((sum, score) => sum + (score || 0), 0);
+                            // S Group Grade
                             let sGroupGrade = 0;
-                            if (sPracticeGroup && service.type === 'normal') {
-                                const sGroupEval = evaluation.serviceDay.groupScores[sPracticeGroup.id];
+                            let sHasGroupData = false;
+                            if (sGroupSourceId) {
+                                const sGroupEval = evaluation.serviceDay.groupScores[sGroupSourceId];
                                 if (sGroupEval) {
+                                    sHasGroupData = sGroupEval.scores?.some(sc => sc !== null);
                                     sGroupGrade = (sGroupEval.scores || []).reduce((sum, score) => sum + (score || 0), 0);
-                                    if (sIndividualEval.halveGroupScore) sGroupGrade /= 2;
                                 }
                             }
+                            
+                            // S Individual Grade
+                            const sHasIndData = sIndividualEval?.scores?.some(sc => sc !== null);
+                            let sIndividualGrade = (sIndividualEval?.scores || []).reduce((sum, score) => sum + (score || 0), 0);
+                            
+                            // Inheritance sync
+                            if (!sHasIndData && sHasGroupData) sIndividualGrade = sGroupGrade;
+
+                            if (sIndividualEval?.halveGroupScore) sGroupGrade /= 2;
                             gradesOfAllStudents.push((sIndividualGrade * SERVICE_GRADE_WEIGHTS.individual) + (sGroupGrade * SERVICE_GRADE_WEIGHTS.group));
                         }
                     }
@@ -407,7 +445,6 @@ const FichaAlumno: React.FC<FichaAlumnoProps> = ({ student, onBack, onUpdatePhot
                     </dl>
                 </div>
                 <div className="w-full xl:col-span-1 space-y-6">
-                     {/* New Section: Entry/Exit Records with Delete Capability */}
                      <div className="bg-white shadow-md rounded-lg p-4">
                         <h3 className="text-lg font-bold text-gray-800 mb-4 text-orange-600 flex items-center">
                             <ArrowRightLeftIcon className="w-5 h-5 mr-2"/> Registro de Salidas y Entradas
@@ -473,7 +510,6 @@ const FichaAlumno: React.FC<FichaAlumnoProps> = ({ student, onBack, onUpdatePhot
                                                 if (instrument.key === 'servicios') {
                                                     grade = allCalculatedGrades[student.id]?.serviceAverages?.[period.key as 't1' | 't2' | 't3'] ?? null;
                                                 } else if (instrument.key.startsWith('exPractico')) {
-                                                    // Map period key directly to practicalExams property
                                                     const periodKey = period.key as keyof StudentCalculatedGrades['practicalExams'];
                                                     grade = allCalculatedGrades[student.id]?.practicalExams?.[periodKey] ?? null;
                                                 }

@@ -251,7 +251,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     let studentParticipated = false;
                     let groupEvalSourceId: string | undefined = undefined;
 
-                    // BRANCHING LOGIC BY SERVICE TYPE
+                    // DEFINE EVALUATION UNIT BY SERVICE TYPE
                     if (service.type === 'normal' && studentPracticeGroup) {
                         studentParticipated = (service.assignedGroups.comedor || []).includes(studentPracticeGroup.id) || 
                                            (service.assignedGroups.takeaway || []).includes(studentPracticeGroup.id);
@@ -266,11 +266,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     
                     if (!studentParticipated) return;
 
-                    // Presence defaults to True unless explicitly marked False
+                    // Attendance check (Defaults to TRUE/Present)
                     const isPresent = individualEval ? (individualEval.attendance ?? true) : true;
                     if (!isPresent) return;
     
-                    // 1. Group Grade (Always from groupScores, using correct ID)
+                    // 1. Group / Agrupacion Grade
                     let groupGrade = 0;
                     let hasGroupData = false;
                     if (groupEvalSourceId) {
@@ -281,14 +281,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                         }
                     }
 
-                    // 2. Individual Grade
+                    // 2. Individual Grade (60% weight)
                     const hasIndividualData = individualEval?.scores?.some(s => s !== null);
                     let individualGrade = (individualEval?.scores || []).reduce((sum, score) => sum + (score || 0), 0);
                     
-                    // IF NO DATA EXISTS AT ALL (Neither individual nor group), skip this service
+                    // IF NO DATA ENTERED AT ALL, SKIP
                     if (!hasIndividualData && !hasGroupData) return;
 
-                    // INHERITANCE LOGIC: If individual is blank but group is graded, student gets group grade at 100%
+                    // DEFINITIVE FIX: INHERITANCE LOGIC
+                    // If group is graded but individual is blank, student gets group grade as individual base
                     if (!hasIndividualData && hasGroupData) {
                         individualGrade = groupGrade;
                     }
