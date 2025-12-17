@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { Student, TimelineEvent, PreServiceDayEvaluation, ResultadoAprendizaje, Service, CourseModuleGrades, GradeValue, CriterioEvaluacion } from '../types';
+import { Student, TimelineEvent, PreServiceDayEvaluation, ResultadoAprendizaje, Service, CourseModuleGrades, GradeValue, CriterioEvaluacion, StudentCalculatedGrades } from '../types';
 import { 
     PencilIcon,
     CameraIcon,
@@ -472,9 +472,10 @@ const FichaAlumno: React.FC<FichaAlumnoProps> = ({ student, onBack, onUpdatePhot
                                             } else { // calculated
                                                 if (instrument.key === 'servicios') {
                                                     grade = allCalculatedGrades[student.id]?.serviceAverages?.[period.key as 't1' | 't2' | 't3'] ?? null;
-                                                } else {
-                                                    const examKey = (period.key === 'rec' ? 'exPracticoRec' : `exPractico${period.key.toUpperCase()}`) as keyof typeof allCalculatedGrades[string]['practicalExams'];
-                                                    grade = allCalculatedGrades[student.id]?.practicalExams?.[examKey] ?? null;
+                                                } else if (instrument.key.startsWith('exPractico')) {
+                                                    // Map period key directly to practicalExams property
+                                                    const periodKey = period.key as keyof StudentCalculatedGrades['practicalExams'];
+                                                    grade = allCalculatedGrades[student.id]?.practicalExams?.[periodKey] ?? null;
                                                 }
                                             }
                                             return <td key={`${period.key}-${instrument.key}`}>{grade?.toFixed(2) ?? '-'}</td>

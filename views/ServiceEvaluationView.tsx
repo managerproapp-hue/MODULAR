@@ -442,7 +442,7 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
                 if (!individualEval.behaviorScores) {
                     individualEval.behaviorScores = {};
                 }
-                const behaviorScores = individualEval.behaviorScores;
+                const behaviorScores = individualEval.behaviorScores as Record<string, number | null>;
                 behaviorScores[behaviorItemId] = value;
             } else if (field !== 'behaviorScores') {
                  (individualEval as any)[field] = value;
