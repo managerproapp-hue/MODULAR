@@ -263,25 +263,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                         }
                     }
                     
-                    // If the student didn't participate in this service, skip
                     if (!studentParticipated) return;
 
-                    // If individual record exists, check attendance. If record is missing, assume present if they belong to an assigned group.
+                    // Default to Present if not explicitly absent
                     const isPresent = individualEval ? (individualEval.attendance ?? true) : true;
                     if (!isPresent) return;
     
-                    // Individual component (60%)
-                    const individualGrade = (individualEval?.scores || []).reduce((sum, score) => sum + (score || 0), 0);
-                    
-                    // Group component (40%)
+                    // Calculation logic:
+                    // 1. Group Grade (always 40% if present)
                     let groupGrade = 0;
+                    let hasGroupData = false;
                     if (groupEvalSourceId) {
                         const groupEval = evaluation.serviceDay.groupScores[groupEvalSourceId];
                         if (groupEval) {
+                            hasGroupData = groupEval.scores?.some(s => s !== null);
                             groupGrade = (groupEval.scores || []).reduce((sum, score) => sum + (score || 0), 0);
                         }
                     }
+
+                    // 2. Individual Grade (60%)
+                    const hasIndividualData = individualEval?.scores?.some(s => s !== null);
+                    let individualGrade = (individualEval?.scores || []).reduce((sum, score) => sum + (score || 0), 0);
                     
+                    // IF NO DATA EXISTS AT ALL, Skip
+                    if (!hasIndividualData && !hasGroupData) return;
+
+                    // "INHERITANCE" LOGIC: If user only rated the group but not the individual criteria,
+                    // use the group grade as the individual base so the student doesn't get a 0 for missing data.
+                    if (!hasIndividualData && hasGroupData) {
+                        individualGrade = groupGrade;
+                    }
+
                     if (individualEval?.halveGroupScore) {
                         groupGrade /= 2;
                     }

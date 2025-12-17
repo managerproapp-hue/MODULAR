@@ -58,23 +58,44 @@ const NotasServicioView: React.FC<NotasServicioViewProps> = ({ onNavigateToServi
                     return;
                 }
 
-                // Treat undefined individual evaluation as "present" (attendance: true) to match Context logic
+                // If no evaluation object exists for this service at all, it's un-evaluated
+                if (!evaluation) {
+                    serviceScores[service.id] = { final: null, absent: false };
+                    return;
+                }
+
                 const isPresent = individualEval ? (individualEval.attendance ?? true) : true;
                 if (!isPresent) {
                     serviceScores[service.id] = { final: null, absent: true };
                     return;
                 }
                 
-                const individualGrade = (individualEval?.scores || []).reduce((sum, score) => sum + (score || 0), 0);
-                let groupGrade = 0;
+                // 1. Individual Part
+                const hasIndividualData = individualEval?.scores?.some(s => s !== null);
+                let individualGrade = (individualEval?.scores || []).reduce((sum, score) => sum + (score || 0), 0);
                 
-                if (groupEvalSourceId && evaluation) {
+                // 2. Group Part
+                let groupGrade = 0;
+                let hasGroupData = false;
+                if (groupEvalSourceId) {
                     const groupEval = evaluation.serviceDay.groupScores[groupEvalSourceId];
                     if (groupEval) {
+                        hasGroupData = groupEval.scores?.some(s => s !== null);
                         groupGrade = (groupEval.scores || []).reduce((sum, score) => sum + (score || 0), 0);
                     }
                 }
                 
+                // If NO actual data points have been entered, return null to avoid showing "0.00"
+                if (!hasIndividualData && !hasGroupData) {
+                    serviceScores[service.id] = { final: null, absent: false };
+                    return;
+                }
+
+                // INHERITANCE: If individual scores are null, use group score as individual base
+                if (!hasIndividualData && hasGroupData) {
+                    individualGrade = groupGrade;
+                }
+
                 if (individualEval?.halveGroupScore) groupGrade /= 2;
                 
                 const finalServiceScore = (individualGrade * SERVICE_GRADE_WEIGHTS.individual) + (groupGrade * SERVICE_GRADE_WEIGHTS.group);

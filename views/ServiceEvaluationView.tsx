@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Service, ServiceEvaluation, Student, PracticeGroup, EntryExitRecord, PreServiceDayEvaluation, ServiceDayIndividualScores, Agrupacion, PreServiceIndividualEvaluation, ServiceRole } from '../types';
 import { PRE_SERVICE_BEHAVIOR_ITEMS, BEHAVIOR_RATING_MAP, GROUP_EVALUATION_ITEMS, INDIVIDUAL_EVALUATION_ITEMS } from '../data/constants';
@@ -369,10 +370,11 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
             return;
         }
 
-        deepCloneAndUpdate(draft => {
+        // Fix indexing error by ensuring correct typing inside the update function
+        deepCloneAndUpdate((draft: ServiceEvaluation) => {
             if (!draft.preService) draft.preService = {};
             
-            const individualEvaluations: { [studentId: string]: any } = {};
+            const individualEvaluations: { [studentId: string]: PreServiceIndividualEvaluation } = {};
             const allStudentIdsInService = new Set(evaluationUnits.flatMap(unit => unit.students.map(s => s.id)));
             allStudentIdsInService.forEach(studentId => {
                 individualEvaluations[studentId] = {
@@ -389,19 +391,19 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
     
     const handleDeletePreServiceDay = (date: string) => {
         if (window.confirm('¿Estás seguro de que quieres eliminar este día de pre-servicio?')) {
-            deepCloneAndUpdate(draft => {
+            // Fix potential indexing error with strict types
+            deepCloneAndUpdate((draft: ServiceEvaluation) => {
                 delete draft.preService[date];
             });
         }
     };
 
     const handlePreServiceGroupObservationChange = (date: string, groupId: string, value: string) => {
-        deepCloneAndUpdate(draft => {
-            const preService = draft.preService as Record<string, PreServiceDayEvaluation>;
-            if (preService[date]) {
-                if (!preService[date].groupObservations) preService[date].groupObservations = {};
-                const groupObservations = preService[date].groupObservations as Record<string, string>;
-                groupObservations[groupId] = value;
+        // Fix potential indexing error with strict types
+        deepCloneAndUpdate((draft: ServiceEvaluation) => {
+            if (draft.preService && draft.preService[date]) {
+                if (!draft.preService[date].groupObservations) draft.preService[date].groupObservations = {};
+                draft.preService[date].groupObservations[groupId] = value;
             }
         });
     };
@@ -410,33 +412,26 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
         if (!activePreServiceDate) return;
         const newName = e.target.value;
         const date = activePreServiceDate;
-        deepCloneAndUpdate(draft => {
-            const preService = draft.preService as Record<string, PreServiceDayEvaluation>;
-            if(preService?.[date]) {
-                preService[date].name = newName;
+        // Fix potential indexing error with strict types
+        deepCloneAndUpdate((draft: ServiceEvaluation) => {
+            if(draft.preService && draft.preService[date]) {
+                draft.preService[date].name = newName;
             }
         });
     };
 
     const handlePreServiceIndividualUpdate = (date: string, studentId: string, field: keyof PreServiceIndividualEvaluation, value: any, behaviorItemId?: string) => {
+        // Correcting indexing to avoid 'unknown' or shadowing issues
         deepCloneAndUpdate((draft: ServiceEvaluation) => {
-            // FIX: Use 'any' cast on draft for safe property access and indexing in deep path updates.
-            // This prevents "Type 'unknown' cannot be used as an index type" errors when accessing draft.preService[date].
-            const d = draft as any;
-            if (!d.preService) d.preService = {};
+            if (!draft.preService) draft.preService = {};
             
-            if (!d.preService[date]) {
-                return;
-            }
-            
-            const preServiceDay = d.preService[date];
+            const preServiceDay = draft.preService[date];
+            if (!preServiceDay) return;
             
             if (!preServiceDay.individualEvaluations) preServiceDay.individualEvaluations = {};
             const individualEval = preServiceDay.individualEvaluations[studentId];
 
-            if (!individualEval) {
-                return;
-            }
+            if (!individualEval) return;
     
             if (field === 'behaviorScores' && behaviorItemId && typeof behaviorItemId === 'string') {
                 if (!individualEval.behaviorScores) {
@@ -444,13 +439,15 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
                 }
                 individualEval.behaviorScores[behaviorItemId] = value;
             } else if (field !== 'behaviorScores') {
-                 individualEval[field] = value;
+                 // Explicit cast to handle heterogeneous value types in bracket notation safely
+                 (individualEval as any)[field] = value;
             }
         });
     };
 
     const handleServiceDayIndividualUpdate = (studentId: string, updates: Partial<ServiceDayIndividualScores>) => {
-        deepCloneAndUpdate(draft => {
+        // Ensuring draft is seen as ServiceEvaluation for proper indexing
+        deepCloneAndUpdate((draft: ServiceEvaluation) => {
             if (!draft.serviceDay.individualScores[studentId]) {
                 draft.serviceDay.individualScores[studentId] = {
                     attendance: true, scores: Array(INDIVIDUAL_EVALUATION_ITEMS.length).fill(null),
@@ -591,7 +588,9 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
                                  </tr>
                              </thead>
                              <tbody>
-                                 {GROUP_EVALUATION_ITEMS.map((item, itemIndex) => (<tr key={item.id}><td className="p-2 border text-left">{item.label}</td>{evaluationUnits.map(unit => {const groupEval = evaluation.serviceDay.groupScores[unit.id]; return (<td key={unit.id} className="p-1 border align-middle"><input type="number" step="0.1" min="0" max={item.maxScore} value={groupEval?.scores[itemIndex] ?? ''} onChange={e => handleNumericInputChange(e, item.maxScore, (value) => {deepCloneAndUpdate(draft => {if (!draft.serviceDay.groupScores[unit.id]) draft.serviceDay.groupScores[unit.id] = { scores: Array(GROUP_EVALUATION_ITEMS.length).fill(null), observations: ''}; draft.serviceDay.groupScores[unit.id]!.scores[itemIndex] = value;})})} placeholder={`max: ${item.maxScore.toFixed(2)}`} className="w-full text-center p-1.5 rounded-md border-gray-300 placeholder-gray-300 disabled:bg-gray-100" disabled={isLocked}/></td>)})}</tr>))}
+                                 {GROUP_EVALUATION_ITEMS.map((item, itemIndex) => (<tr key={item.id}><td className="p-2 border text-left">{item.label}</td>{evaluationUnits.map(unit => {const groupEval = evaluation.serviceDay.groupScores[unit.id]; return (<td key={unit.id} className="p-1 border align-middle"><input type="number" step="0.1" min="0" max={item.maxScore} value={groupEval?.scores[itemIndex] ?? ''} onChange={e => handleNumericInputChange(e, item.maxScore, (value) => {
+                                     // Correct type in callback to resolve indexing problems
+                                     deepCloneAndUpdate((draft: ServiceEvaluation) => {if (!draft.serviceDay.groupScores[unit.id]) draft.serviceDay.groupScores[unit.id] = { scores: Array(GROUP_EVALUATION_ITEMS.length).fill(null), observations: ''}; draft.serviceDay.groupScores[unit.id]!.scores[itemIndex] = value;})})} placeholder={`max: ${item.maxScore.toFixed(2)}`} className="w-full text-center p-1.5 rounded-md border-gray-300 placeholder-gray-300 disabled:bg-gray-100" disabled={isLocked}/></td>)})}</tr>))}
                              </tbody>
                              <tfoot>
                                  <tr className="bg-gray-100 font-bold">
@@ -604,7 +603,9 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
                                  </tr>
                                  <tr>
                                     <td className="p-2 border text-left font-medium">Observaciones</td>
-                                    {evaluationUnits.map(unit => (<td key={unit.id} className="p-1 border"><textarea value={evaluation.serviceDay.groupScores[unit.id]?.observations || ''} onChange={e => { deepCloneAndUpdate(draft => { if (!draft.serviceDay.groupScores[unit.id]) { draft.serviceDay.groupScores[unit.id] = { scores: Array(GROUP_EVALUATION_ITEMS.length).fill(null), observations: '' }; } draft.serviceDay.groupScores[unit.id]!.observations = e.target.value; }); }} className="w-full h-20 p-1 rounded-md border-gray-200 resize-none disabled:bg-gray-100" placeholder="Anotaciones..." disabled={isLocked}/></td>))}
+                                    {evaluationUnits.map(unit => (<td key={unit.id} className="p-1 border"><textarea value={evaluation.serviceDay.groupScores[unit.id]?.observations || ''} onChange={e => { 
+                                        // Correct type in callback to resolve indexing problems
+                                        deepCloneAndUpdate((draft: ServiceEvaluation) => { if (!draft.serviceDay.groupScores[unit.id]) { draft.serviceDay.groupScores[unit.id] = { scores: Array(GROUP_EVALUATION_ITEMS.length).fill(null), observations: '' }; } draft.serviceDay.groupScores[unit.id]!.observations = e.target.value; }); }} className="w-full h-20 p-1 rounded-md border-gray-200 resize-none disabled:bg-gray-100" placeholder="Anotaciones..." disabled={isLocked}/></td>))}
                                 </tr>
                              </tfoot>
                          </table>
