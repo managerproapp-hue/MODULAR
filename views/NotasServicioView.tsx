@@ -58,23 +58,19 @@ const NotasServicioView: React.FC<NotasServicioViewProps> = ({ onNavigateToServi
                     return;
                 }
 
-                // If no evaluation object exists for this service at all, it's un-evaluated
                 if (!evaluation) {
                     serviceScores[service.id] = { final: null, absent: false };
                     return;
                 }
 
+                // Presence defaults to True unless False
                 const isPresent = individualEval ? (individualEval.attendance ?? true) : true;
                 if (!isPresent) {
                     serviceScores[service.id] = { final: null, absent: true };
                     return;
                 }
                 
-                // 1. Individual Part
-                const hasIndividualData = individualEval?.scores?.some(s => s !== null);
-                let individualGrade = (individualEval?.scores || []).reduce((sum, score) => sum + (score || 0), 0);
-                
-                // 2. Group Part
+                // 1. Group Part
                 let groupGrade = 0;
                 let hasGroupData = false;
                 if (groupEvalSourceId) {
@@ -84,6 +80,10 @@ const NotasServicioView: React.FC<NotasServicioViewProps> = ({ onNavigateToServi
                         groupGrade = (groupEval.scores || []).reduce((sum, score) => sum + (score || 0), 0);
                     }
                 }
+
+                // 2. Individual Part
+                const hasIndividualData = individualEval?.scores?.some(s => s !== null);
+                let individualGrade = (individualEval?.scores || []).reduce((sum, score) => sum + (score || 0), 0);
                 
                 // If NO actual data points have been entered, return null to avoid showing "0.00"
                 if (!hasIndividualData && !hasGroupData) {
@@ -91,7 +91,7 @@ const NotasServicioView: React.FC<NotasServicioViewProps> = ({ onNavigateToServi
                     return;
                 }
 
-                // INHERITANCE: If individual scores are null, use group score as individual base
+                // INHERITANCE: If individual is blank but group has data, give 100% of group grade
                 if (!hasIndividualData && hasGroupData) {
                     individualGrade = groupGrade;
                 }

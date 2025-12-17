@@ -375,8 +375,13 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
             if (!draft.preService) draft.preService = {};
             
             const individualEvaluations: { [studentId: string]: PreServiceIndividualEvaluation } = {};
-            const allStudentIdsInService = new Set(evaluationUnits.flatMap(unit => unit.students.map(s => s.id)));
-            allStudentIdsInService.forEach(studentId => {
+            // FIX: Explicitly typing the Set and forEach loop to avoid 'unknown' as index type error on line 380
+            const allStudentIdsInService = new Set<string>();
+            evaluationUnits.forEach(unit => {
+                unit.students.forEach(s => allStudentIdsInService.add(s.id));
+            });
+
+            allStudentIdsInService.forEach((studentId: string) => {
                 individualEvaluations[studentId] = {
                     attendance: true, hasFichas: true, hasUniforme: true, hasMaterial: true,
                     behaviorScores: {}, observations: ''
