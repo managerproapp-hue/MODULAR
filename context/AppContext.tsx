@@ -239,8 +239,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             const studentPracticeGroup = practiceGroups.find(pg => pg.studentIds.includes(student.id));
     
             (['t1', 't2', 't3'] as const).forEach(trimester => {
-                // Use the 'trimester' property of the service object (e.g. 't1') to filter.
-                // This ensures consistency with the Planning/Service views where services are categorized by this property.
                 const servicesInTrimester = services.filter(s => s.trimester === trimester);
     
                 const serviceScoresForTrimester: number[] = [];
@@ -251,10 +249,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     const individualEval = evaluation.serviceDay.individualScores?.[student.id];
                     
                     let studentParticipated = false;
+                    let groupEvalSourceId: string | undefined = undefined;
+
                     if (service.type === 'normal' && studentPracticeGroup) {
                         studentParticipated = service.assignedGroups.comedor.includes(studentPracticeGroup.id) || service.assignedGroups.takeaway.includes(studentPracticeGroup.id);
+                        groupEvalSourceId = studentPracticeGroup.id;
                     } else if (service.type === 'agrupacion') {
-                        studentParticipated = (service.agrupaciones || []).some(a => a.studentIds.includes(student.id));
+                        const studentAgrupacion = (service.agrupaciones || []).find(a => a.studentIds.includes(student.id));
+                        if (studentAgrupacion) {
+                            studentParticipated = true;
+                            groupEvalSourceId = studentAgrupacion.id;
+                        }
                     }
     
                     if (!studentParticipated || !individualEval || !individualEval.attendance) {
@@ -264,14 +269,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     const individualGrade = (individualEval.scores || []).reduce((sum, score) => sum + (score || 0), 0);
                     
                     let groupGrade = 0;
-                    let groupEvalSourceId: string | undefined = undefined;
-    
-                    if (service.type === 'normal' && studentPracticeGroup) {
-                        groupEvalSourceId = studentPracticeGroup.id;
-                    } else if (service.type === 'agrupacion') {
-                        groupEvalSourceId = service.agrupaciones?.find(a => a.studentIds.includes(student.id))?.id;
-                    }
-                    
                     if (groupEvalSourceId) {
                         const groupEval = evaluation.serviceDay.groupScores[groupEvalSourceId];
                         if (groupEval) {

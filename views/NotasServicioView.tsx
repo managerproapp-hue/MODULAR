@@ -37,12 +37,19 @@ const NotasServicioView: React.FC<NotasServicioViewProps> = ({ onNavigateToServi
                 const individualEval = evaluation?.serviceDay.individualScores[student.id];
 
                 let studentParticipated = false;
+                let groupEvalSourceId: string | undefined = undefined;
+                
                 const studentPracticeGroup = practiceGroups.find(pg => pg.studentIds.includes(student.id));
 
                 if (service.type === 'normal' && studentPracticeGroup) {
                     studentParticipated = service.assignedGroups.comedor.includes(studentPracticeGroup.id) || service.assignedGroups.takeaway.includes(studentPracticeGroup.id);
+                    groupEvalSourceId = studentPracticeGroup.id;
                 } else if (service.type === 'agrupacion') {
-                    studentParticipated = (service.agrupaciones || []).some(a => a.studentIds.includes(student.id));
+                    const studentAgrupacion = (service.agrupaciones || []).find(a => a.studentIds.includes(student.id));
+                    if (studentAgrupacion) {
+                        studentParticipated = true;
+                        groupEvalSourceId = studentAgrupacion.id;
+                    }
                 }
                 
                 if (!studentParticipated || !individualEval || individualEval.attendance === false) {
@@ -53,16 +60,10 @@ const NotasServicioView: React.FC<NotasServicioViewProps> = ({ onNavigateToServi
                 const individualGrade = (individualEval.scores || []).reduce((sum, score) => sum + (score || 0), 0);
                 let groupGrade = 0;
                 
-                if (service.type === 'agrupacion') {
-                    const studentAgrupacion = service.agrupaciones?.find(a => a.studentIds.includes(student.id));
-                    if (studentAgrupacion && evaluation) {
-                        const groupEval = evaluation.serviceDay.groupScores[studentAgrupacion.id];
-                        if (groupEval) groupGrade = (groupEval.scores || []).reduce((sum, score) => sum + (score || 0), 0);
-                    }
-                } else { // 'normal'
-                    if (studentPracticeGroup && evaluation) {
-                        const groupEval = evaluation.serviceDay.groupScores[studentPracticeGroup.id];
-                        if (groupEval) groupGrade = (groupEval.scores || []).reduce((sum, score) => sum + (score || 0), 0);
+                if (groupEvalSourceId && evaluation) {
+                    const groupEval = evaluation.serviceDay.groupScores[groupEvalSourceId];
+                    if (groupEval) {
+                        groupGrade = (groupEval.scores || []).reduce((sum, score) => sum + (score || 0), 0);
                     }
                 }
                 

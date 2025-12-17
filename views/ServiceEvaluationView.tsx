@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Service, ServiceEvaluation, Student, PracticeGroup, EntryExitRecord, PreServiceDayEvaluation, ServiceDayIndividualScores, Agrupacion, PreServiceIndividualEvaluation, ServiceRole } from '../types';
 import { PRE_SERVICE_BEHAVIOR_ITEMS, BEHAVIOR_RATING_MAP, GROUP_EVALUATION_ITEMS, INDIVIDUAL_EVALUATION_ITEMS } from '../data/constants';
@@ -422,8 +421,9 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
     const handlePreServiceIndividualUpdate = (date: string, studentId: string, field: keyof PreServiceIndividualEvaluation, value: any, behaviorItemId?: string) => {
         deepCloneAndUpdate((draft: ServiceEvaluation) => {
             if (!draft.preService) draft.preService = {};
-            // FIX: Explicitly cast preService to Record to prevent "unknown" index type error on line 380
-            const preServiceMap = draft.preService as Record<string, PreServiceDayEvaluation>;
+            // FIX: Explicitly cast preService to Record to prevent "unknown" index type error
+            // We use 'any' to ensure property access works correctly in complex nested objects within deep clone context.
+            const preServiceMap = draft.preService as Record<string, any>;
             
             if (!preServiceMap || !preServiceMap[date]) {
                 return;
@@ -433,7 +433,8 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
             
             if (!preServiceDay.individualEvaluations) preServiceDay.individualEvaluations = {};
             // FIX: Explicitly cast individualEvaluations to Record to ensure index access by studentId is safe
-            const evaluations = preServiceDay.individualEvaluations as Record<string, PreServiceIndividualEvaluation>;
+            // We use 'any' here as well to satisfy the TypeScript compiler for dynamic indexing.
+            const evaluations = preServiceDay.individualEvaluations as Record<string, any>;
             const individualEval = evaluations[studentId];
 
             if (!individualEval) {
@@ -601,7 +602,7 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
                                      <td className="p-2 border text-left">TOTAL</td>
                                      {evaluationUnits.map(unit => { 
                                          const scores = (evaluation.serviceDay.groupScores[unit.id]?.scores?.filter(s => s !== null) as number[]) ?? []; 
-                                         const total = scores.reduce((a, b) => a + b, 0); 
+                                         const total = scores.reduce((sum, s) => sum + (s || 0), 0); 
                                          return <td key={unit.id} className="p-2 border text-center">{total.toFixed(2)} / {GROUP_EVALUATION_ITEMS.reduce((acc, item) => acc + item.maxScore, 0).toFixed(2)}</td>
                                      })}
                                  </tr>
