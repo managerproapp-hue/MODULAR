@@ -422,7 +422,8 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
     const handlePreServiceIndividualUpdate = (date: string, studentId: string, field: keyof PreServiceIndividualEvaluation, value: any, behaviorItemId?: string) => {
         deepCloneAndUpdate((draft: ServiceEvaluation) => {
             if (!draft.preService) draft.preService = {};
-            const preServiceMap = draft.preService;
+            // FIX: Explicitly cast preService to Record to prevent "unknown" index type error on line 380
+            const preServiceMap = draft.preService as Record<string, PreServiceDayEvaluation>;
             
             if (!preServiceMap || !preServiceMap[date]) {
                 return;
@@ -431,7 +432,8 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
             const preServiceDay = preServiceMap[date];
             
             if (!preServiceDay.individualEvaluations) preServiceDay.individualEvaluations = {};
-            const evaluations = preServiceDay.individualEvaluations;
+            // FIX: Explicitly cast individualEvaluations to Record to ensure index access by studentId is safe
+            const evaluations = preServiceDay.individualEvaluations as Record<string, PreServiceIndividualEvaluation>;
             const individualEval = evaluations[studentId];
 
             if (!individualEval) {

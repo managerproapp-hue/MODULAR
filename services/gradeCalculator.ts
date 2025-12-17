@@ -52,7 +52,8 @@ export const calculateStudentPeriodAverages = (
  * Calculates grades for modules like 'Optativa' or 'Proyecto' based on instrument grades.
  * T1 = Average of all activities in t1
  * T2 = Average of all activities in t2
- * Final = Average of T1 and T2
+ * T3 = Average of all activities in t3
+ * Final = Average of non-null trimester averages
  */
 export const calculateModularGrades = (
     studentId: string,
@@ -69,8 +70,7 @@ export const calculateModularGrades = (
             if (grade !== null && grade !== undefined && !isNaN(grade)) {
                 if (activity.trimester === 't1') grades.t1.push(grade);
                 else if (activity.trimester === 't2') grades.t2.push(grade);
-                // Note: EvaluationActivity type currently only supports 't1' | 't2'. 
-                // If 't3' is added to the type, handle it here.
+                else if (activity.trimester === 't3') grades.t3.push(grade);
             }
         });
     });
@@ -80,9 +80,10 @@ export const calculateModularGrades = (
 
     const avgT1 = calculateAverage(grades.t1);
     const avgT2 = calculateAverage(grades.t2);
+    const avgT3 = calculateAverage(grades.t3);
     
-    // For Final Grade: Average of the trimester averages
-    const validTrimesterAverages = [avgT1, avgT2].filter(g => g !== null) as number[];
+    // For Final Grade: Average of the trimester averages that actually have grades
+    const validTrimesterAverages = [avgT1, avgT2, avgT3].filter(g => g !== null) as number[];
     const finalAvg = validTrimesterAverages.length > 0 
         ? validTrimesterAverages.reduce((a, b) => a + b, 0) / validTrimesterAverages.length 
         : null;
@@ -90,7 +91,7 @@ export const calculateModularGrades = (
     return {
         t1: avgT1,
         t2: avgT2,
-        t3: null, // Placeholder if needed
+        t3: avgT3,
         final: finalAvg
     };
 };

@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { ResultadoAprendizaje, CriterioEvaluacion, AsociacionCriterio, UnidadTrabajo, InstrumentoEvaluacion, EvaluationActivity } from '../types';
@@ -351,7 +350,8 @@ const RAView: React.FC<RAViewProps> = ({ module }) => {
     }, [students, resultadosAprendizaje, criteriosEvaluacion, academicGrades, instrumentGrades, calculatedStudentGrades, module]);
 
     const activityInfoMap = useMemo(() => {
-        const map = new Map<string, { instrumentName: string, activityName: string, trimester: 't1' | 't2' }>();
+        // FIX: Added 't3' to the trimester type of the Map definition on line 355 to fix assignability error on line 357.
+        const map = new Map<string, { instrumentName: string, activityName: string, trimester: 't1' | 't2' | 't3' }>();
         for (const inst of Object.values(instrumentosEvaluacion) as InstrumentoEvaluacion[]) {
             for (const act of inst.activities) map.set(act.id, { instrumentName: inst.nombre, activityName: act.name, trimester: act.trimester });
         }
@@ -420,7 +420,7 @@ const RAView: React.FC<RAViewProps> = ({ module }) => {
     const totalRAText = totalRAPonderacion === 100 ? `Suma Total RAs: 100% (Correcto)` : `Suma Total RAs: ${totalRAPonderacion}% (Debe ser 100%)`;
 
     return (
-        <div>
+        <div className="space-y-6">
             <header className="flex flex-wrap justify-between items-center gap-4 mb-4">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-800 flex items-center"><FileTextIcon className="w-8 h-8 mr-3 text-purple-500"/>Resultados de Aprendizaje y Criterios</h1>

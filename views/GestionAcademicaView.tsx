@@ -236,8 +236,6 @@ const GestionAcademicaView: React.FC = () => {
         // Save for 'instrumentos' tab is handled within its component
     };
 
-    const handleExport = () => { /* PDF Export logic */ };
-    
     return (
     <div>
         <header className="flex flex-wrap justify-between items-center gap-4 mb-6">
@@ -359,35 +357,27 @@ const GestionAcademicaView: React.FC = () => {
                                     const studentCourseGrades = localCourseGrades[student.id] || {};
                                     const isConvalidated = studentCourseGrades[module.name]?.isConvalidated;
                                     
-                                    // Use calculated grades if module is Optativa or Proyecto, else manual
-                                    let grades: Partial<CourseModuleGrades> | { t1: number | null, t2: number | null, t3: number | null, final: number | null } = studentCourseGrades[module.name] || {};
+                                    let gradesObj: { t1: number | null, t2: number | null, t3: number | null, final: number | null };
                                     let calculated = false;
 
                                     if (module.name === 'Optativa') {
-                                        grades = calculateModularGrades(student.id, instrumentGrades, optativaInstrumentosEvaluacion);
+                                        gradesObj = calculateModularGrades(student.id, instrumentGrades, optativaInstrumentosEvaluacion);
                                         calculated = true;
                                     } else if (module.name === 'Proyecto') {
-                                        grades = calculateModularGrades(student.id, instrumentGrades, proyectoInstrumentosEvaluacion);
+                                        gradesObj = calculateModularGrades(student.id, instrumentGrades, proyectoInstrumentosEvaluacion);
                                         calculated = true;
-                                    }
-
-                                    const manualGrades = studentCourseGrades[module.name] || {}; // For REC and manual T3 if needed
-
-                                    const t1Val = calculated ? grades.t1 : manualGrades.t1;
-                                    const t2Val = calculated ? grades.t2 : manualGrades.t2;
-                                    const t3Val = calculated ? grades.t3 : manualGrades.t3; // Currently calculator returns null for T3
-                                    const recVal = manualGrades.rec; 
-
-                                    // For Optativa/Proyecto, final is calculated. For others, it's the average of inputs
-                                    let finalAvg: number | null = null;
-                                    if (calculated) {
-                                        finalAvg = (grades as any).final;
                                     } else {
-                                        const validGrades = ([t1Val, t2Val, module.trimesters === 3 ? t3Val : undefined] as (GradeValue | undefined)[])
-                                            .map(g => g !== null && g !== undefined ? parseFloat(String(g)) : NaN)
-                                            .filter(g => !isNaN(g));
-                                        finalAvg = validGrades.length > 0 ? (validGrades.reduce((a, b) => a + b, 0) / validGrades.length) : null;
+                                        const stored = studentCourseGrades[module.name] || {};
+                                        const valid = [stored.t1, stored.t2, module.trimesters === 3 ? stored.t3 : null].filter(g => g !== null && g !== undefined) as number[];
+                                        gradesObj = {
+                                            t1: stored.t1 ?? null,
+                                            t2: stored.t2 ?? null,
+                                            t3: stored.t3 ?? null,
+                                            final: valid.length > 0 ? (valid.reduce((a,b) => a+b, 0) / valid.length) : null
+                                        };
                                     }
+
+                                    const recVal = studentCourseGrades[module.name]?.rec ?? null; 
 
                                     return (
                                         <React.Fragment key={module.name}>
@@ -400,23 +390,26 @@ const GestionAcademicaView: React.FC = () => {
                                                 <>
                                                     <td className={`border ${calculated ? 'bg-gray-100' : ''}`}>
                                                         {calculated ? 
-                                                            <span className="p-1.5 block text-center font-medium text-gray-700">{t1Val?.toFixed(2) ?? '-'}</span> :
-                                                            <input type="number" step="0.1" min="0" max="10" value={t1Val ?? ''} onChange={e => handleCourseGradeChange(student.id, module.name, 't1', e.target.value)} className="w-16 p-1.5 text-center bg-transparent focus:bg-yellow-100 outline-none" />
+                                                            <span className="p-1.5 block text-center font-medium text-gray-700">{gradesObj.t1?.toFixed(2) ?? '-'}</span> :
+                                                            <input type="number" step="0.1" min="0" max="10" value={gradesObj.t1 ?? ''} onChange={e => handleCourseGradeChange(student.id, module.name, 't1', e.target.value)} className="w-16 p-1.5 text-center bg-transparent focus:bg-yellow-100 outline-none" />
                                                         }
                                                     </td>
                                                     <td className={`border ${calculated ? 'bg-gray-100' : ''}`}>
                                                         {calculated ?
-                                                            <span className="p-1.5 block text-center font-medium text-gray-700">{t2Val?.toFixed(2) ?? '-'}</span> :
-                                                            <input type="number" step="0.1" min="0" max="10" value={t2Val ?? ''} onChange={e => handleCourseGradeChange(student.id, module.name, 't2', e.target.value)} className="w-16 p-1.5 text-center bg-transparent focus:bg-yellow-100 outline-none" />
+                                                            <span className="p-1.5 block text-center font-medium text-gray-700">{gradesObj.t2?.toFixed(2) ?? '-'}</span> :
+                                                            <input type="number" step="0.1" min="0" max="10" value={gradesObj.t2 ?? ''} onChange={e => handleCourseGradeChange(student.id, module.name, 't2', e.target.value)} className="w-16 p-1.5 text-center bg-transparent focus:bg-yellow-100 outline-none" />
                                                         }
                                                     </td>
                                                     {module.trimesters === 3 && (
-                                                        <td className="border">
-                                                            <input type="number" step="0.1" min="0" max="10" value={t3Val ?? ''} onChange={e => handleCourseGradeChange(student.id, module.name, 't3', e.target.value)} className="w-16 p-1.5 text-center bg-transparent focus:bg-yellow-100 outline-none" />
+                                                        <td className={`border ${calculated ? 'bg-gray-100' : ''}`}>
+                                                            {calculated ?
+                                                                <span className="p-1.5 block text-center font-medium text-gray-700">{gradesObj.t3?.toFixed(2) ?? '-'}</span> :
+                                                                <input type="number" step="0.1" min="0" max="10" value={gradesObj.t3 ?? ''} onChange={e => handleCourseGradeChange(student.id, module.name, 't3', e.target.value)} className="w-16 p-1.5 text-center bg-transparent focus:bg-yellow-100 outline-none" />
+                                                            }
                                                         </td>
                                                     )}
                                                     <td className="border"><input type="number" step="0.1" min="0" max="10" value={recVal ?? ''} onChange={e => handleCourseGradeChange(student.id, module.name, 'rec', e.target.value)} className="w-16 p-1.5 text-center bg-transparent focus:bg-yellow-100 outline-none" /></td>
-                                                    <td className={`p-1.5 border font-bold ${finalAvg !== null && finalAvg < 5 ? 'text-red-600' : 'text-black'} bg-gray-200`}>{finalAvg?.toFixed(2) ?? '-'}</td>
+                                                    <td className={`p-1.5 border font-bold ${gradesObj.final !== null && gradesObj.final < 5 ? 'text-red-600' : 'text-black'} bg-gray-200`}>{gradesObj.final?.toFixed(2) ?? '-'}</td>
                                                     <td className="border text-center">
                                                         <button onClick={() => handleToggleConvalidation(student.id, module.name)} className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200">Convalidar</button>
                                                     </td>

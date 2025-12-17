@@ -324,7 +324,7 @@ export interface CriterioEvaluacion {
 export interface EvaluationActivity {
     id: string;
     name: string;
-    trimester: 't1' | 't2';
+    trimester: 't1' | 't2' | 't3';
 }
 
 export interface InstrumentoEvaluacion {

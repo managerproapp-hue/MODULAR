@@ -505,37 +505,27 @@ const FichaAlumno: React.FC<FichaAlumnoProps> = ({ student, onBack, onUpdatePhot
                                         const isSostenibilidad = mod.name === 'Sostenibilidad aplicada al sistema productivo';
                                         const isConvalidated = allCourseGrades[student.id]?.[mod.name]?.isConvalidated;
                                         
-                                        // Calculate grades if it's Optativa/Proyecto, otherwise use stored
-                                        let grades: any = {};
+                                        let gradesObj: { t1: number | null, t2: number | null, t3: number | null, final: number | null };
                                         let calculated = false;
-                                        let finalAvg: number | null = null;
 
                                         if (mod.name === 'Optativa') {
-                                            grades = calculateModularGrades(student.id, instrumentGrades, optativaInstrumentosEvaluacion);
-                                            finalAvg = grades.final;
+                                            gradesObj = calculateModularGrades(student.id, instrumentGrades, optativaInstrumentosEvaluacion);
                                             calculated = true;
                                         } else if (mod.name === 'Proyecto') {
-                                            grades = calculateModularGrades(student.id, instrumentGrades, proyectoInstrumentosEvaluacion);
-                                            finalAvg = grades.final;
+                                            gradesObj = calculateModularGrades(student.id, instrumentGrades, proyectoInstrumentosEvaluacion);
                                             calculated = true;
-                                        } else if (isSostenibilidad) {
-                                            grades = sostenibilidadAverages;
                                         } else {
-                                            grades = allCourseGrades[student.id]?.[mod.name] || {};
+                                            const stored = allCourseGrades[student.id]?.[mod.name] || {};
+                                            const valid = [stored.t1, stored.t2, mod.trimesters === 3 ? stored.t3 : null].filter(g => g !== null && g !== undefined) as number[];
+                                            gradesObj = {
+                                                t1: stored.t1 ?? null,
+                                                t2: stored.t2 ?? null,
+                                                t3: stored.t3 ?? null,
+                                                final: valid.length > 0 ? (valid.reduce((a,b) => a+b, 0) / valid.length) : null
+                                            };
                                         }
 
-                                        // Fallback manual calculation if not already calculated (for standard manual modules)
-                                        if (!calculated) {
-                                            const validGrades = ([
-                                                grades.t1, 
-                                                grades.t2, 
-                                                mod.trimesters === 3 ? (grades as any).t3 : undefined
-                                            ] as (GradeValue | undefined)[])
-                                                .map(g => g !== null && g !== undefined ? parseFloat(String(g)) : NaN)
-                                                .filter(g => !isNaN(g));
-                                            
-                                            finalAvg = validGrades.length > 0 ? (validGrades.reduce((a, b) => a + b, 0) / validGrades.length) : null;
-                                        }
+                                        const recVal = allCourseGrades[student.id]?.[mod.name]?.rec ?? null;
 
                                         return (
                                             <tr key={mod.name}>
@@ -549,11 +539,11 @@ const FichaAlumno: React.FC<FichaAlumnoProps> = ({ student, onBack, onUpdatePhot
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <td className={calculated ? "bg-gray-50 font-medium" : ""}>{grades.t1 !== null && grades.t1 !== undefined ? grades.t1.toFixed(2) : '-'}</td>
-                                                        <td className={calculated ? "bg-gray-50 font-medium" : ""}>{grades.t2 !== null && grades.t2 !== undefined ? grades.t2.toFixed(2) : '-'}</td>
-                                                        <td>{mod.trimesters === 3 ? ((grades as any).t3 !== null && (grades as any).t3 !== undefined ? (grades as any).t3.toFixed(2) : '-') : <span className="text-gray-400">N/A</span>}</td>
-                                                        <td>{(!calculated && (grades as any).rec) ? (grades as any).rec : '-'}</td>
-                                                        <td className={`font-bold ${finalAvg !== null && finalAvg < 5 ? 'text-red-600' : ''}`}>{finalAvg?.toFixed(2) ?? '-'}</td>
+                                                        <td className={calculated ? "bg-gray-50 font-medium" : ""}>{gradesObj.t1 !== null ? gradesObj.t1.toFixed(2) : '-'}</td>
+                                                        <td className={calculated ? "bg-gray-50 font-medium" : ""}>{gradesObj.t2 !== null ? gradesObj.t2.toFixed(2) : '-'}</td>
+                                                        <td className={calculated ? "bg-gray-50 font-medium" : ""}>{mod.trimesters === 3 ? (gradesObj.t3 !== null ? gradesObj.t3.toFixed(2) : '-') : <span className="text-gray-400">N/A</span>}</td>
+                                                        <td>{recVal ?? '-'}</td>
+                                                        <td className={`font-bold ${gradesObj.final !== null && gradesObj.final < 5 ? 'text-red-600' : ''}`}>{gradesObj.final?.toFixed(2) ?? '-'}</td>
                                                         <td className="px-4 py-2 text-center">
                                                           {!isSostenibilidad && (
                                                             <button onClick={() => handleToggleConvalidation(mod.name)} className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200">Convalidar</button>
