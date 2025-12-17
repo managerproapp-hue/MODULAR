@@ -1,5 +1,4 @@
 
-
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Student, TimelineEvent, PreServiceDayEvaluation, ResultadoAprendizaje, Service, CourseModuleGrades, GradeValue, CriterioEvaluacion } from '../types';
 import { 
@@ -17,7 +16,7 @@ import {
 import { useAppContext } from '../context/AppContext';
 import { generateStudentFilePDF } from '../services/reportGenerator';
 import { calculateRAGrade, calculateCriterioGrade } from '../services/academicAnalytics';
-import { calculateStudentPeriodAverages } from '../services/gradeCalculator';
+import { calculateStudentPeriodAverages, calculateModularGrades } from '../services/gradeCalculator';
 import { ACADEMIC_EVALUATION_STRUCTURE, COURSE_MODULES, SERVICE_GRADE_WEIGHTS } from '../data/constants';
 
 interface FichaAlumnoProps {
@@ -123,8 +122,8 @@ const FichaAlumno: React.FC<FichaAlumnoProps> = ({ student, onBack, onUpdatePhot
     teacherData, 
     instituteData,
     pcResultadosAprendizaje, pcCriteriosEvaluacion,
-    optativaResultadosAprendizaje, optativaCriteriosEvaluacion,
-    proyectoResultadosAprendizaje, proyectoCriteriosEvaluacion,
+    optativaResultadosAprendizaje, optativaCriteriosEvaluacion, optativaInstrumentosEvaluacion,
+    proyectoResultadosAprendizaje, proyectoCriteriosEvaluacion, proyectoInstrumentosEvaluacion,
     academicGrades: allAcademicGrades,
     instrumentGrades,
     calculatedStudentGrades: allCalculatedGrades,
@@ -505,19 +504,37 @@ const FichaAlumno: React.FC<FichaAlumnoProps> = ({ student, onBack, onUpdatePhot
                                         const isSostenibilidad = mod.name === 'Sostenibilidad aplicada al sistema productivo';
                                         const isConvalidated = allCourseGrades[student.id]?.[mod.name]?.isConvalidated;
                                         
-                                        const grades = isSostenibilidad 
-                                            ? sostenibilidadAverages 
-                                            : (allCourseGrades[student.id]?.[mod.name] || {});
+                                        // Calculate grades if it's Optativa/Proyecto, otherwise use stored
+                                        let grades: any = {};
+                                        let calculated = false;
+                                        let finalAvg: number | null = null;
 
-                                        const validGrades = ([
-                                            grades.t1, 
-                                            grades.t2, 
-                                            mod.trimesters === 3 ? (grades as any).t3 : undefined
-                                        ] as (GradeValue | undefined)[])
-                                            .map(g => g !== null && g !== undefined ? parseFloat(String(g)) : NaN)
-                                            .filter(g => !isNaN(g));
-                                        
-                                        const finalAvg = validGrades.length > 0 ? (validGrades.reduce((a, b) => a + b, 0) / validGrades.length) : null;
+                                        if (mod.name === 'Optativa') {
+                                            grades = calculateModularGrades(student.id, instrumentGrades, optativaInstrumentosEvaluacion);
+                                            finalAvg = grades.final;
+                                            calculated = true;
+                                        } else if (mod.name === 'Proyecto') {
+                                            grades = calculateModularGrades(student.id, instrumentGrades, proyectoInstrumentosEvaluacion);
+                                            finalAvg = grades.final;
+                                            calculated = true;
+                                        } else if (isSostenibilidad) {
+                                            grades = sostenibilidadAverages;
+                                        } else {
+                                            grades = allCourseGrades[student.id]?.[mod.name] || {};
+                                        }
+
+                                        // Fallback manual calculation if not already calculated (for standard manual modules)
+                                        if (!calculated) {
+                                            const validGrades = ([
+                                                grades.t1, 
+                                                grades.t2, 
+                                                mod.trimesters === 3 ? (grades as any).t3 : undefined
+                                            ] as (GradeValue | undefined)[])
+                                                .map(g => g !== null && g !== undefined ? parseFloat(String(g)) : NaN)
+                                                .filter(g => !isNaN(g));
+                                            
+                                            finalAvg = validGrades.length > 0 ? (validGrades.reduce((a, b) => a + b, 0) / validGrades.length) : null;
+                                        }
 
                                         return (
                                             <tr key={mod.name}>
@@ -531,10 +548,10 @@ const FichaAlumno: React.FC<FichaAlumnoProps> = ({ student, onBack, onUpdatePhot
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <td>{grades.t1 !== null && grades.t1 !== undefined ? grades.t1.toFixed(2) : '-'}</td>
-                                                        <td>{grades.t2 !== null && grades.t2 !== undefined ? grades.t2.toFixed(2) : '-'}</td>
-                                                        <td>{mod.trimesters === 3 ? ((grades as any).t3 ?? '-') : <span className="text-gray-400">N/A</span>}</td>
-                                                        <td>{(grades as any).rec ?? '-'}</td>
+                                                        <td className={calculated ? "bg-gray-50 font-medium" : ""}>{grades.t1 !== null && grades.t1 !== undefined ? grades.t1.toFixed(2) : '-'}</td>
+                                                        <td className={calculated ? "bg-gray-50 font-medium" : ""}>{grades.t2 !== null && grades.t2 !== undefined ? grades.t2.toFixed(2) : '-'}</td>
+                                                        <td>{mod.trimesters === 3 ? ((grades as any).t3 !== null && (grades as any).t3 !== undefined ? (grades as any).t3.toFixed(2) : '-') : <span className="text-gray-400">N/A</span>}</td>
+                                                        <td>{(!calculated && (grades as any).rec) ? (grades as any).rec : '-'}</td>
                                                         <td className={`font-bold ${finalAvg !== null && finalAvg < 5 ? 'text-red-600' : ''}`}>{finalAvg?.toFixed(2) ?? '-'}</td>
                                                         <td className="px-4 py-2 text-center">
                                                           {!isSostenibilidad && (

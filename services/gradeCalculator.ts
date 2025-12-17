@@ -1,4 +1,5 @@
-import { StudentAcademicGrades, StudentCalculatedGrades } from '../types';
+
+import { StudentAcademicGrades, StudentCalculatedGrades, InstrumentGrades, InstrumentoEvaluacion } from '../types';
 import { ACADEMIC_EVALUATION_STRUCTURE } from '../data/constants';
 
 export const calculateStudentPeriodAverages = (
@@ -45,4 +46,51 @@ export const calculateStudentPeriodAverages = (
     });
 
     return results;
+};
+
+/**
+ * Calculates grades for modules like 'Optativa' or 'Proyecto' based on instrument grades.
+ * T1 = Average of all activities in t1
+ * T2 = Average of all activities in t2
+ * Final = Average of T1 and T2
+ */
+export const calculateModularGrades = (
+    studentId: string,
+    instrumentGrades: InstrumentGrades,
+    instrumentosEvaluacion: Record<string, InstrumentoEvaluacion>
+): { t1: number | null, t2: number | null, t3: number | null, final: number | null } => {
+    
+    const grades: { t1: number[], t2: number[], t3: number[] } = { t1: [], t2: [], t3: [] };
+    const studentGrades = instrumentGrades[studentId] || {};
+
+    Object.values(instrumentosEvaluacion).forEach(instrument => {
+        instrument.activities.forEach(activity => {
+            const grade = studentGrades[activity.id];
+            if (grade !== null && grade !== undefined && !isNaN(grade)) {
+                if (activity.trimester === 't1') grades.t1.push(grade);
+                else if (activity.trimester === 't2') grades.t2.push(grade);
+                // Note: EvaluationActivity type currently only supports 't1' | 't2'. 
+                // If 't3' is added to the type, handle it here.
+            }
+        });
+    });
+
+    const calculateAverage = (values: number[]) => 
+        values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : null;
+
+    const avgT1 = calculateAverage(grades.t1);
+    const avgT2 = calculateAverage(grades.t2);
+    
+    // For Final Grade: Average of the trimester averages
+    const validTrimesterAverages = [avgT1, avgT2].filter(g => g !== null) as number[];
+    const finalAvg = validTrimesterAverages.length > 0 
+        ? validTrimesterAverages.reduce((a, b) => a + b, 0) / validTrimesterAverages.length 
+        : null;
+
+    return {
+        t1: avgT1,
+        t2: avgT2,
+        t3: null, // Placeholder if needed
+        final: finalAvg
+    };
 };

@@ -99,7 +99,7 @@ export const PRACTICAL_EXAM_RUBRIC = [
 
 export const COURSE_MODULES: { name: string; trimesters: number }[] = [
     { name: 'Ofertas gastronómicas', trimesters: 2 },
-    { name: 'Productos culinarios', trimesters: 2 },
+    { name: 'Optativa', trimesters: 2 },
     { name: 'Postres en restauración', trimesters: 2 },
     { name: 'Itinerario personal para la Empleabilidad II', trimesters: 2 },
     { name: 'Proyecto', trimesters: 3 },

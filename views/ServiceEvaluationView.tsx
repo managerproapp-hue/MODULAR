@@ -422,30 +422,29 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
     const handlePreServiceIndividualUpdate = (date: string, studentId: string, field: keyof PreServiceIndividualEvaluation, value: any, behaviorItemId?: string) => {
         deepCloneAndUpdate((draft: ServiceEvaluation) => {
             if (!draft.preService) draft.preService = {};
-            const preServiceMap = draft.preService as Record<string, PreServiceDayEvaluation>;
-            const preServiceDay = preServiceMap[date];
+            const preServiceMap = draft.preService;
             
-            if (!preServiceDay) {
+            if (!preServiceMap || !preServiceMap[date]) {
                 return;
             }
             
+            const preServiceDay = preServiceMap[date];
+            
             if (!preServiceDay.individualEvaluations) preServiceDay.individualEvaluations = {};
-            const evaluations = preServiceDay.individualEvaluations as Record<string, PreServiceIndividualEvaluation>;
+            const evaluations = preServiceDay.individualEvaluations;
             const individualEval = evaluations[studentId];
 
             if (!individualEval) {
                 return;
             }
     
-            if (field === 'behaviorScores' && behaviorItemId) {
+            if (field === 'behaviorScores' && behaviorItemId && typeof behaviorItemId === 'string') {
                 if (!individualEval.behaviorScores) {
                     individualEval.behaviorScores = {};
                 }
-                const behaviorScores = individualEval.behaviorScores as Record<string, number | null>;
-                if (typeof behaviorItemId === 'string') {
-                    behaviorScores[behaviorItemId] = value;
-                }
-            } else {
+                const behaviorScores = individualEval.behaviorScores;
+                behaviorScores[behaviorItemId] = value;
+            } else if (field !== 'behaviorScores') {
                  (individualEval as any)[field] = value;
             }
         });
