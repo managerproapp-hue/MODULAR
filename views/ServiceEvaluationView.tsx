@@ -420,22 +420,19 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
 
     const handlePreServiceIndividualUpdate = (date: string, studentId: string, field: keyof PreServiceIndividualEvaluation, value: any, behaviorItemId?: string) => {
         deepCloneAndUpdate((draft: ServiceEvaluation) => {
-            if (!draft.preService) draft.preService = {};
-            // FIX: Explicitly cast preService to Record to prevent "unknown" index type error
-            // We use 'any' to ensure property access works correctly in complex nested objects within deep clone context.
-            const preServiceMap = draft.preService as Record<string, any>;
+            // FIX: Use 'any' cast on draft for safe property access and indexing in deep path updates.
+            // This prevents "Type 'unknown' cannot be used as an index type" errors when accessing draft.preService[date].
+            const d = draft as any;
+            if (!d.preService) d.preService = {};
             
-            if (!preServiceMap || !preServiceMap[date]) {
+            if (!d.preService[date]) {
                 return;
             }
             
-            const preServiceDay = preServiceMap[date];
+            const preServiceDay = d.preService[date];
             
             if (!preServiceDay.individualEvaluations) preServiceDay.individualEvaluations = {};
-            // FIX: Explicitly cast individualEvaluations to Record to ensure index access by studentId is safe
-            // We use 'any' here as well to satisfy the TypeScript compiler for dynamic indexing.
-            const evaluations = preServiceDay.individualEvaluations as Record<string, any>;
-            const individualEval = evaluations[studentId];
+            const individualEval = preServiceDay.individualEvaluations[studentId];
 
             if (!individualEval) {
                 return;
@@ -445,10 +442,9 @@ const ServiceEvaluationView: React.FC<ServiceEvaluationViewProps> = ({ service, 
                 if (!individualEval.behaviorScores) {
                     individualEval.behaviorScores = {};
                 }
-                const behaviorScores = individualEval.behaviorScores as Record<string, number | null>;
-                behaviorScores[behaviorItemId] = value;
+                individualEval.behaviorScores[behaviorItemId] = value;
             } else if (field !== 'behaviorScores') {
-                 (individualEval as any)[field] = value;
+                 individualEval[field] = value;
             }
         });
     };

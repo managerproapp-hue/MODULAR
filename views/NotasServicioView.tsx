@@ -42,7 +42,8 @@ const NotasServicioView: React.FC<NotasServicioViewProps> = ({ onNavigateToServi
                 const studentPracticeGroup = practiceGroups.find(pg => pg.studentIds.includes(student.id));
 
                 if (service.type === 'normal' && studentPracticeGroup) {
-                    studentParticipated = service.assignedGroups.comedor.includes(studentPracticeGroup.id) || service.assignedGroups.takeaway.includes(studentPracticeGroup.id);
+                    studentParticipated = (service.assignedGroups.comedor || []).includes(studentPracticeGroup.id) || 
+                                       (service.assignedGroups.takeaway || []).includes(studentPracticeGroup.id);
                     groupEvalSourceId = studentPracticeGroup.id;
                 } else if (service.type === 'agrupacion') {
                     const studentAgrupacion = (service.agrupaciones || []).find(a => a.studentIds.includes(student.id));
@@ -52,12 +53,19 @@ const NotasServicioView: React.FC<NotasServicioViewProps> = ({ onNavigateToServi
                     }
                 }
                 
-                if (!studentParticipated || !individualEval || individualEval.attendance === false) {
+                if (!studentParticipated) {
+                    serviceScores[service.id] = { final: null, absent: false };
+                    return;
+                }
+
+                // Treat undefined individual evaluation as "present" (attendance: true) to match Context logic
+                const isPresent = individualEval ? (individualEval.attendance ?? true) : true;
+                if (!isPresent) {
                     serviceScores[service.id] = { final: null, absent: true };
                     return;
                 }
                 
-                const individualGrade = (individualEval.scores || []).reduce((sum, score) => sum + (score || 0), 0);
+                const individualGrade = (individualEval?.scores || []).reduce((sum, score) => sum + (score || 0), 0);
                 let groupGrade = 0;
                 
                 if (groupEvalSourceId && evaluation) {
@@ -89,7 +97,7 @@ const NotasServicioView: React.FC<NotasServicioViewProps> = ({ onNavigateToServi
             const row: (string | number | null)[] = [`${student.apellido1} ${student.apellido2}, ${student.nombre}`];
             sortedServices.forEach(service => {
                 const scoreInfo = serviceScores[service.id];
-                 if (!scoreInfo) {
+                 if (!scoreInfo || (scoreInfo.final === null && !scoreInfo.absent)) {
                      row.push("-");
                  } else if (scoreInfo.absent) {
                     row.push("AUS");
@@ -165,7 +173,7 @@ const NotasServicioView: React.FC<NotasServicioViewProps> = ({ onNavigateToServi
                                                 const finalScore = scoreInfo?.final;
                                                 return (
                                                     <td key={service.id} className={`p-1 border font-bold ${finalScore !== null && finalScore < 5 ? 'text-red-600' : ''}`}>
-                                                        {!scoreInfo ? '-' : scoreInfo.absent ? <span className="text-red-500 font-semibold">AUS</span> : <span>{finalScore?.toFixed(2)}</span>}
+                                                        {!scoreInfo || (scoreInfo.final === null && !scoreInfo.absent) ? '-' : scoreInfo.absent ? <span className="text-red-500 font-semibold">AUS</span> : <span>{finalScore?.toFixed(2)}</span>}
                                                     </td>
                                                 );
                                             })}

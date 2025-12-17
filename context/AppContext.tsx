@@ -131,6 +131,7 @@ interface AppContextType {
     handleUpdateStudent: (student: Student) => void;
 
     handleCreateService: (trimester: 't1' | 't2' | 't3', type: 'normal' | 'agrupacion') => string;
+    handleCreateServiceCustom: (trimester: 't1' | 't2' | 't3', type: 'normal' | 'agrupacion') => string;
     handleSaveServiceAndEvaluation: (service: Service, evaluation: ServiceEvaluation) => void;
     handleDeleteService: (serviceId: string) => void;
     onDeleteRole: (roleId: string) => void;
@@ -235,7 +236,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 practicalExams: { t1: null, t2: null, t3: null, rec: null }
             };
     
-            // 1. Calculate Service Averages
             const studentPracticeGroup = practiceGroups.find(pg => pg.studentIds.includes(student.id));
     
             (['t1', 't2', 't3'] as const).forEach(trimester => {
@@ -252,7 +252,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     let groupEvalSourceId: string | undefined = undefined;
 
                     if (service.type === 'normal' && studentPracticeGroup) {
-                        studentParticipated = service.assignedGroups.comedor.includes(studentPracticeGroup.id) || service.assignedGroups.takeaway.includes(studentPracticeGroup.id);
+                        studentParticipated = (service.assignedGroups.comedor || []).includes(studentPracticeGroup.id) || 
+                                           (service.assignedGroups.takeaway || []).includes(studentPracticeGroup.id);
                         groupEvalSourceId = studentPracticeGroup.id;
                     } else if (service.type === 'agrupacion') {
                         const studentAgrupacion = (service.agrupaciones || []).find(a => a.studentIds.includes(student.id));
@@ -261,13 +262,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                             groupEvalSourceId = studentAgrupacion.id;
                         }
                     }
-    
-                    if (!studentParticipated || !individualEval || !individualEval.attendance) {
-                        return;
-                    }
-    
-                    const individualGrade = (individualEval.scores || []).reduce((sum, score) => sum + (score || 0), 0);
                     
+                    // If the student didn't participate in this service, skip
+                    if (!studentParticipated) return;
+
+                    // If individual record exists, check attendance. If record is missing, assume present if they belong to an assigned group.
+                    const isPresent = individualEval ? (individualEval.attendance ?? true) : true;
+                    if (!isPresent) return;
+    
+                    // Individual component (60%)
+                    const individualGrade = (individualEval?.scores || []).reduce((sum, score) => sum + (score || 0), 0);
+                    
+                    // Group component (40%)
                     let groupGrade = 0;
                     if (groupEvalSourceId) {
                         const groupEval = evaluation.serviceDay.groupScores[groupEvalSourceId];
@@ -276,7 +282,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                         }
                     }
                     
-                    if (individualEval.halveGroupScore) {
+                    if (individualEval?.halveGroupScore) {
                         groupGrade /= 2;
                     }
     
@@ -290,7 +296,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 }
             });
     
-            // 2. Calculate Practical Exam Grades
             (['t1', 't2', 't3', 'rec'] as const).forEach(period => {
                 const exam = practicalExamEvaluations.find(e => e.studentId === student.id && e.examPeriod === period);
                 studentGrades[student.id].practicalExams[period] = exam?.finalScore ?? null;
@@ -300,7 +305,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return studentGrades;
     }, [students, services, serviceEvaluations, practicalExamEvaluations, practiceGroups]);
     
-    // --- Generic CRUD Handlers ---
+    // --- CRUD Handlers ---
     const createCRUDHandlers = (
         setRAs: React.Dispatch<React.SetStateAction<Record<string, ResultadoAprendizaje>>>,
         setCriterios: React.Dispatch<React.SetStateAction<Record<string, CriterioEvaluacion>>>,
@@ -325,7 +330,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             addToast('RA y sus criterios eliminados.', 'info');
         },
         handleSaveCriterio: (criterio: CriterioEvaluacion, parentRaId: string) => {
-            // Ensure the raId is set on the criterio object before saving
             const criterioToSave = { ...criterio, raId: parentRaId };
             setCriterios(prev => ({ ...prev, [criterio.id]: criterioToSave }));
             setRAs(prev => {
@@ -385,7 +389,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setStudents(prev => prev.map(s => s.id === updatedStudent.id ? updatedStudent : s));
         addToast('Ficha del alumno actualizada.', 'success');
     };
-    const handleCreateService = (trimester: 't1' | 't2' | 't3', type: 'normal' | 'agrupacion' = 'normal'): string => {
+
+    const handleCreateServiceCustom = (trimester: 't1' | 't2' | 't3', type: 'normal' | 'agrupacion' = 'normal'): string => {
         const newServiceId = `service-${Date.now()}`;
         const newService: Service = {
             id: newServiceId,
@@ -411,6 +416,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addToast('Nuevo servicio creado.', 'success');
         return newServiceId;
     };
+
     const handleSaveServiceAndEvaluation = (service: Service, evaluation: ServiceEvaluation) => {
         setServices(prev => prev.map(s => s.id === service.id ? service : s));
         setServiceEvaluations(prev => prev.map(e => e.id === evaluation.id ? evaluation : e));
@@ -423,7 +429,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     const onDeleteRole = (roleId: string) => {
         setServiceRoles(prev => prev.filter(r => r.id !== roleId));
-        // Also remove assignments using this role
         setServices(prevServices => prevServices.map(s => ({
             ...s,
             studentRoles: s.studentRoles.filter(sr => sr.roleId !== roleId)
@@ -489,7 +494,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         profesores, setProfesores,
         toasts, addToast,
         handleFileUpload, handleUpdateStudent,
-        handleCreateService, handleSaveServiceAndEvaluation, handleDeleteService, onDeleteRole, handleSaveEntryExitRecord, handleDeleteEntryExitRecord, handleSavePracticalExam,
+        handleCreateService: handleCreateServiceCustom, 
+        handleCreateServiceCustom,
+        handleSaveServiceAndEvaluation, handleDeleteService, onDeleteRole, handleSaveEntryExitRecord, handleDeleteEntryExitRecord, handleSavePracticalExam,
         
         handleSavePCRA: pcCRUD.handleSaveRA, handleDeletePCRA: pcCRUD.handleDeleteRA, handleSavePCCriterio: pcCRUD.handleSaveCriterio, handleDeletePCCriterio: pcCRUD.handleDeleteCriterio, handleSavePCUT: pcCRUD.handleSaveUT, handleDeletePCUT: pcCRUD.handleDeleteUT, handleDeletePCInstrumento: pcCRUD.handleDeleteInstrumento,
         handleSaveOptativaRA: optativaCRUD.handleSaveRA, handleDeleteOptativaRA: optativaCRUD.handleDeleteRA, handleSaveOptativaCriterio: optativaCRUD.handleSaveCriterio, handleDeleteOptativaCriterio: optativaCRUD.handleDeleteCriterio, handleSaveOptativaUT: optativaCRUD.handleSaveUT, handleDeleteOptativaUT: optativaCRUD.handleDeleteUT, handleDeleteOptativaInstrumento: optativaCRUD.handleDeleteInstrumento,
